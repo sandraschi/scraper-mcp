@@ -1,0 +1,56 @@
+[build-system]
+requires = ["hatchling>=1.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "scraper-mcp"
+version = "0.2.0"
+description = "FastMCP 3.2: Fleet grade aggregator (ToolBench, Glama, LobeHub) + ToolBench guide & Playwright archiver. Replaces toolbench-mcp."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "Sandra Schieder" }]
+dependencies = [
+    "fastmcp>=3.2,<4",
+    "fastapi>=0.115",
+    "httpx>=0.28",
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "uvicorn[standard]>=0.32",
+    "beautifulsoup4>=4.12",
+    "lxml>=5.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.8",
+]
+scraper = ["playwright>=1.49.0"]
+
+[project.urls]
+Homepage = "https://github.com/sandraschi/scraper-mcp"
+Repository = "https://github.com/sandraschi/scraper-mcp"
+
+[project.scripts]
+scraper-mcp = "scraper_mcp.server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/scraper_mcp"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
