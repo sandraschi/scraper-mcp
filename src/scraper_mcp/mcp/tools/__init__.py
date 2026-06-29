@@ -1,5 +1,5 @@
 """MCP tools package — portmanteau imports for FastMCP registration."""
 
-from . import coverage, guide, platforms, improvement
+from . import coverage, guide, platforms, improvement, suggest
 
-__all__ = ["coverage", "guide", "platforms", "improvement"]
+__all__ = ["coverage", "guide", "platforms", "improvement", "suggest"]
