@@ -33,10 +33,12 @@ def _normalize_row(repo: str, **fields: Any) -> GradeRow:
         "status": fields.get("status", "unknown"),
         "tools": fields.get("tools", 0),
     }
-    # Pass through extra fields (tdqs dimensions, etc.) for raw_json storage
+    # Pass through extra fields for raw_json storage
     for key in ("tdqs_mean", "tdqs_min", "tdqs_grade", "coherence_grade",
                 "maintenance_grade", "tool_details", "latest_release",
-                "profile_completion"):
+                "profile_completion", "definition_score", "protocol_score",
+                "supportability_score", "trust_score", "top_issues",
+                "server_id"):
         if key in fields:
             row[key] = fields[key]
     return row
@@ -97,33 +99,26 @@ class ToolBenchScraper(BaseScraper):
     base_url = "https://toolbench.arcade.dev"
 
     async def fetch_grade(self, owner: str, repo: str) -> GradeRow | None:
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            r = await client.get(
-                f"{self.base_url}/api/servers",
-                params={"q": repo},
-                headers={"Accept": "application/json"},
-            )
-            if r.status_code != 200:
-                return None
-            data = r.json()
-            servers = data.get("servers", data.get("data", []))
-            if not isinstance(servers, list):
-                return None
-            for s in servers:
-                name = (s.get("name") or "").strip()
-                if name.lower() != repo.lower():
-                    continue
-                server_id = s.get("id", "")
-                url = f"{self.base_url}/servers/{server_id}" if server_id else f"{self.base_url}/servers"
-                return _normalize_row(
-                    repo,
-                    grade=s.get("grade", "?"),
-                    score=s.get("overallScore", s.get("score")),
-                    url=url,
-                    status=s.get("status", "unknown"),
-                    tools=s.get("toolCount", 0),
-                )
-        return None
+        from scraper_mcp.scrapers.toolbench_score import fetch_grade_with_details
+
+        detail = await fetch_grade_with_details(owner, repo)
+        if not detail:
+            return None
+        return _normalize_row(
+            repo,
+            grade=detail.get("grade", "?"),
+            score=detail.get("score"),
+            url=detail.get("url", f"{self.base_url}/tools/{detail.get('server_id', '')}"),
+            status=detail.get("status", "unknown"),
+            tools=detail.get("tools", 0),
+            definition_score=detail.get("definition_score"),
+            protocol_score=detail.get("protocol_score"),
+            supportability_score=detail.get("supportability_score"),
+            trust_score=detail.get("trust_score"),
+            top_issues=detail.get("top_issues"),
+            tool_details=detail.get("tool_details"),
+            server_id=detail.get("server_id"),
+        )
 
     async def request_reassess(self, owner: str, repo: str) -> bool:
         async with httpx.AsyncClient(timeout=self.timeout) as client:
