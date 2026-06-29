@@ -7,6 +7,7 @@ import { useLogger } from "../context/logger-context";
 interface GradeEntry {
   grade: string | null;
   score: number | null;
+  url: string;
   fetched_at: number;
 }
 
@@ -32,13 +33,17 @@ const GRADE_COLORS: Record<string, string> = {
   "?": "bg-slate-600",
 };
 
-function GradeBadge({ grade }: { grade: string | null }) {
+function GradeBadge({ grade, url }: { grade: string | null; url?: string }) {
   const g = grade || "?";
-  return (
-    <span className={`inline-flex items-center justify-center w-8 h-6 rounded text-xs font-bold text-white ${GRADE_COLORS[g] || "bg-slate-600"}`}>
-      {g}
-    </span>
-  );
+  const cls = `inline-flex items-center justify-center w-8 h-6 rounded text-xs font-bold text-white ${GRADE_COLORS[g] || "bg-slate-600"}`;
+  if (url) {
+    return (
+      <a href={url} target="_blank" rel="noopener noreferrer" title={`View on ${url}`} className={cls}>
+        {g}
+      </a>
+    );
+  }
+  return <span className={cls}>{g}</span>;
 }
 
 export default function Dashboard() {
@@ -158,7 +163,7 @@ export default function Dashboard() {
                   {allPlatforms.map((p) => (
                     <td key={p} className="py-2 px-3 text-center">
                       {row.platforms[p] ? (
-                        <GradeBadge grade={row.platforms[p].grade} />
+                        <GradeBadge grade={row.platforms[p].grade} url={row.platforms[p].url} />
                       ) : (
                         <span className="text-slate-700 text-xs">—</span>
                       )}

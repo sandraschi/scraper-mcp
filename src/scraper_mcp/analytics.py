@@ -104,23 +104,30 @@ def get_history(platform: str, owner: str, repo: str, limit: int = 20) -> list[d
 
 def get_coverage_matrix(owner: str) -> dict:
     """Build a coverage matrix: repos × platforms with grades."""
+    import json
     from scraper_mcp.fleet_registry import load_fleet_repo_ids
     from scraper_mcp.scrapers.engine import SCRAPERS
 
     conn = _get_db()
     rows = conn.execute(
-        "SELECT platform, repo, grade, score, fetched_at FROM grades WHERE owner=? ORDER BY repo, platform",
+        "SELECT platform, repo, grade, score, raw_json, fetched_at FROM grades WHERE owner=? ORDER BY repo, platform",
         (owner,),
     ).fetchall()
     conn.close()
 
     repos: dict[str, dict] = {}
     platforms_seen: set[str] = set(SCRAPERS.keys())
-    for platform, repo, grade, score, fetched_at in rows:
+    for platform, repo, grade, score, raw_json, fetched_at in rows:
         platforms_seen.add(platform)
         if repo not in repos:
             repos[repo] = {}
-        repos[repo][platform] = {"grade": grade, "score": score, "fetched_at": fetched_at}
+        raw = json.loads(raw_json) if raw_json else {}
+        repos[repo][platform] = {
+            "grade": grade,
+            "score": score,
+            "url": raw.get("url", ""),
+            "fetched_at": fetched_at,
+        }
 
     fleet_ids = load_fleet_repo_ids()
     for repo_id in fleet_ids:
