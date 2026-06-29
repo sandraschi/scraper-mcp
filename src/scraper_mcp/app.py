@@ -234,6 +234,57 @@ def build_app() -> FastAPI:
             ),
         }
 
+    @app.get("/api/badge.svg")
+    async def api_badge(repo: str = "", owner: str = "sandraschi"):
+        """Combined SVG score badge: ToolBench + Glama grades for a repo."""
+        from scraper_mcp.analytics import get_latest
+
+        tb_grade = "?"
+        gl_grade = "?"
+        if repo:
+            latest = get_latest(owner=owner, repo=repo)
+            for entry in latest:
+                if entry["platform"] == "toolbench":
+                    tb_grade = entry.get("grade") or "?"
+                elif entry["platform"] == "glama":
+                    gl_grade = entry.get("grade") or "?"
+
+        def grade_color(g: str) -> str:
+            return {"A+": "#2ea44f", "A": "#2ea44f", "B": "#0969da",
+                    "C": "#d4a72c", "D": "#d93f21", "F": "#cf222e"}.get(g, "#6e7681")
+
+        svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="220" height="20">
+  <linearGradient id="b" x2="0" y2="100%"><stop offset="0" stop-color="#bbb" stop-opacity=".1"/><stop offset="1" stop-opacity=".1"/></linearGradient>
+  <rect rx="3" width="220" height="20" fill="#555"/>
+  <rect rx="3" x="85" width="70" height="20" fill="{grade_color(tb_grade)}"/>
+  <rect rx="3" x="155" width="65" height="20" fill="{grade_color(gl_grade)}"/>
+  <rect fill={'"#url(#b)"'} width="220" height="20"/>
+  <text x="6" y="14" fill="#fff" font-family="DejaVu Sans,sans-serif" font-size="11" font-weight="bold">scraper</text>
+  <text x="92" y="14" fill="#fff" font-family="DejaVu Sans,sans-serif" font-size="11" font-weight="bold">TB {tb_grade}</text>
+  <text x="162" y="14" fill="#fff" font-family="DejaVu Sans,sans-serif" font-size="11" font-weight="bold">GL {gl_grade}</text>
+</svg>'''
+        from fastapi.responses import Response
+        return Response(content=svg, media_type="image/svg+xml")
+
+    @app.get("/api/export")
+    async def api_export(owner: str = "sandraschi"):
+        """Export all grades as JSON for CI pipelines."""
+        from scraper_mcp.analytics import get_coverage_matrix, get_latest
+
+        latest = get_latest(owner=owner)
+        matrix = get_coverage_matrix(owner)
+        return {
+            "exported_at": time.time(),
+            "owner": owner,
+            "repo_count": matrix["repo_count"],
+            "grades": [
+                {"platform": e["platform"], "repo": e["repo"],
+                 "grade": e["grade"], "score": e["score"],
+                 "fetched_at": e["fetched_at"]}
+                for e in latest
+            ],
+        }
+
     app.include_router(build_meta_router())
     app.include_router(build_scraper_router())
     app.include_router(build_logs_router())

@@ -29,4 +29,7 @@ def load_fleet_repo_ids() -> list[str]:
             rid = row.get("id") or row.get("name")
             if rid:
                 ids.append(str(rid))
+    # Always track scraper-mcp itself
+    if "scraper-mcp" not in ids:
+        ids.append("scraper-mcp")
     return sorted(set(ids))
