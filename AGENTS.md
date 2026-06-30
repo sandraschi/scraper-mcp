@@ -22,7 +22,17 @@ Optional Playwright archiver: `uv sync --extra scraper` then `playwright install
 
 ## Key paths
 
-- `src/scraper_mcp/app.py` — FastAPI app (health, capabilities, coverage, MCP mount)
+- `src/scraper_mcp/app.py` — FastAPI app (health, capabilities, coverage, MCP mount, `/api/trends`)
 - `src/scraper_mcp/scraper_api.py` — ToolBench Playwright subprocess API
 - `src/scraper_mcp/mcp/tools/guide.py` — `toolbench_guide`
+- `src/scraper_mcp/mcp/tools/suggest.py` — `scraper_improve_suggest` (+ llm-gateway integration)
+- `src/scraper_mcp/mcp/tools/improvement.py` — `scraper_improvement_plan`
+- `src/scraper_mcp/mcp/tools/status.py` — `scraper_status`
+- `src/scraper_mcp/mcp/tools/helptool.py` — `scraper_help`
 - `webapp/src/pages/tools.tsx` — archiver UI
+
+## Cross-connect
+
+- **llm-gateway**: set `LLM_GATEWAY_URL`, `LLM_GATEWAY_PROVIDER`, `LLM_GATEWAY_MODEL` for AI-powered suggestions
+- **aiwatcher-mcp**: grade drop alerts POST to `AIWATCHER_URL` (default http://127.0.0.1:10946/api/fleet/event)
+- Threshold: `SCRAPER_ALERT_THRESHOLD` (default B)

@@ -53,7 +53,10 @@ class BaseScraper:
 
 ## To Do (v0.2+)
 
+- [x] Grade alerting: notify when a fleet repo drops below B on any platform
+- [x] llm-gateway integration for AI-powered improvement suggestions
+- [x] Trend API (`GET /api/trends`) with grade direction tracking
 - [ ] NVIDIA-AI co new scraping agent via `@mcp.tool(sampling=True)` for AG2.0 spec-awareness
 - [ ] Clickhouse-scorer modularity: independent grader quality scoring via separate service
 - [ ] Tauri 2.0 native wrapper (system tray grade monitor)
-- [ ] Grade alerting: notify when a fleet repo drops below B on any platform
+- [ ] Trend chart in webapp dashboard (frontend for `/api/trends`)

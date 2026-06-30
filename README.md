@@ -27,10 +27,13 @@ MCP clients: point HTTP transport at `http://127.0.0.1:10998/mcp` (was 10817).
 - **Coverage matrix** — which fleet repos are indexed on which platforms
 - **Grade tracking** — letter grades, numeric scores, TDQS dimensions per platform
 - **Delta history** — SQLite-persisted grade changes over time
-- **Reassess triggers** — request rescoring via ToolBench submit flow
-- **toolbench_guide** — curated Arcade links, rescoring steps, Glama vs ToolBench notes
-- **Playwright archiver** — `/api/scraper/*` + **Tools** webapp page (optional `uv sync --extra scraper`)
-- **Fleet pages** — `/tools`, `/logs`, `/api/capabilities`, `/api/logs`
+- **Reassess triggers** — request rescoring via ToolBench submit flow
+- **LLM-powered suggestions** — `scraper_improve_suggest(use_llm=True)` routes through llm-gateway for AI-generated code fixes
+- **Grade drop alerts** — auto-notifies aiwatcher-mcp when a repo falls below threshold
+- **Trend API** — `GET /api/trends` tracks grade direction (+/-/=) per repo per platform
+- **toolbench_guide** — curated Arcade links, rescoring steps, Glama vs ToolBench notes
+- **Playwright archiver** — `/api/scraper/*` + **Tools** webapp page (optional `uv sync --extra scraper`)
+- **Fleet pages** — `/tools`, `/logs`, `/api/capabilities`, `/api/logs`
 
 ## Quick Start
 
@@ -62,9 +65,13 @@ Browser: `http://127.0.0.1:10999`
 | `scraper_refresh` | Scan all platforms for fleet repos, persist grades |
 | `scraper_matrix` | Coverage matrix: repos × platforms with grade badges |
 | `scraper_repo` | Detailed report for a single repo with history |
-| `scraper_reassess` | Request rescoring on ToolBench (or all platforms) |
-| `scraper_platforms` | List available grading platforms & capabilities |
-| `toolbench_guide` | Arcade ToolBench workflow links and rescoring guidance |
+| `scraper_reassess` | Request rescoring on ToolBench (or all platforms) |
+| `scraper_improve_suggest` | Generate code-level fix suggestions from ToolBench findings |
+| `scraper_improvement_plan` | Prioritized improvement plan mapped to fleet standards |
+| `scraper_status` | Server health, last refresh times, platform status |
+| `scraper_help` | Multi-level help (basic/advanced/platform) |
+| `scraper_platforms` | List available grading platforms & capabilities |
+| `toolbench_guide` | Arcade ToolBench workflow links and rescoring guidance |
 
 ## Transports
 
