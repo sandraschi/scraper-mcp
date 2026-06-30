@@ -45,3 +45,11 @@ build-native:
 # Run the CUA smoke test against the installed NSIS app
 cua-nsis-test:
     uv run python scripts/cua-smoke.py
+
+# Daily refresh: pull grades from all platforms and alert on drops
+daily-refresh:
+    uv run python -c "import asyncio; from scraper_mcp.scrapers.engine import refresh_all; from scraper_mcp.analytics import upsert_grade; from scraper_mcp.mcp.tools.suggest import _alert_if_drop; r = asyncio.run(refresh_all('sandraschi', None)); [(upsert_grade(p,'sandraschi',x['repo'],x.get('grade'),x.get('score'),x), print(f'{p}/{x[\"repo\"]}: {x.get(\"grade\",\"?\")}')) for p,rs in r.items() for x in rs]"
+
+# Register daily refresh Windows scheduled task
+register-daily-refresh:
+    pwsh -NoProfile -File "{{justfile_directory()}}\scripts\register-daily-refresh.ps1"

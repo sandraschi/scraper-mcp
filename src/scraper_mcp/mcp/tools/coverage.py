@@ -8,6 +8,11 @@ from ...analytics import get_coverage_matrix, get_history, get_latest, upsert_gr
 from ...scrapers.engine import SCRAPERS, refresh_all, refresh_single
 from ..registry import mcp
 
+try:
+    from .suggest import _alert_if_drop
+except ImportError:
+    async def _alert_if_drop(*args, **kwargs): return None
+
 FLEET_OWNER = "sandraschi"
 
 
@@ -31,29 +36,41 @@ async def scraper_refresh(
     if repo:
         results = await refresh_single(owner, repo)
         count = 0
+        alerts = []
         for pid, r in results.items():
             if r:
+                old = get_latest(platform=pid, owner=owner, repo=repo)
+                old_grade = old[0]["grade"] if old else None
                 upsert_grade(pid, owner, repo, r.get("grade"), r.get("score"), r)
+                alert = await _alert_if_drop(repo, pid, old_grade, r.get("grade"))
+                if alert:
+                    alerts.append(alert)
                 count += 1
         return {
             "success": True,
             "message": f"Refreshed {repo}: found on {count}/3 platforms.",
-            "data": {"refreshed": count},
+            "data": {"refreshed": count, "alerts": alerts} if alerts else {"refreshed": count},
         }
 
     results = await refresh_all(owner, None)
     total = 0
     summary = {}
+    alerts = []
     for pid, repos in results.items():
         for r in repos:
+            old = get_latest(platform=pid, owner=owner, repo=r["repo"])
+            old_grade = old[0]["grade"] if old else None
             upsert_grade(pid, owner, r["repo"], r.get("grade"), r.get("score"), r)
+            alert = await _alert_if_drop(r["repo"], pid, old_grade, r.get("grade"))
+            if alert:
+                alerts.append(alert)
             total += 1
         summary[pid] = {"found": len(repos)}
 
     return {
         "success": True,
         "message": f"Refreshed {total} repo-grade entries across {len(summary)} platforms.",
-        "data": {"refreshed": total, "platforms": summary},
+        "data": {"refreshed": total, "platforms": summary, "alerts": alerts} if alerts else {"refreshed": total, "platforms": summary},
     }
 
 

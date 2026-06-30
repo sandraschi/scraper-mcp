@@ -156,6 +156,30 @@ def build_app() -> FastAPI:
             "latest_grades": len(latest),
         }
 
+    @app.get("/api/trends")
+    async def api_trends() -> dict:
+        """Grade trends: improving (+), declining (-), or stable (=) per repo per platform."""
+        from scraper_mcp.analytics import get_coverage_matrix, get_history
+
+        matrix = get_coverage_matrix("sandraschi")
+        trends = {}
+        for repo, platforms in matrix["repos"].items():
+            for pid in matrix["platforms"]:
+                history = get_history(pid, "sandraschi", repo, limit=5)
+                if len(history) < 2:
+                    continue
+                old = history[-1].get("score") or 0
+                new = history[0].get("score") or 0
+                diff = new - old
+                if abs(diff) < 0.01:
+                    arrow = "="
+                elif diff > 0:
+                    arrow = "+"
+                else:
+                    arrow = "-"
+                trends.setdefault(repo, {})[pid] = {"arrow": arrow, "diff": round(diff, 2)}
+        return {"trends": trends}
+
     @app.get("/api/coverage")
     async def api_coverage(owner: str = Query("sandraschi")) -> dict[str, Any]:
         from scraper_mcp.analytics import get_coverage_matrix

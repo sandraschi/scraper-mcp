@@ -1,12 +1,68 @@
 """scraper_improve_suggest — generates concrete code-level fix suggestions from ToolBench findings."""
 
+import os
 from typing import Annotated
 
+import httpx
 from pydantic import Field
 
 from ...analytics import get_latest, upsert_grade
 from ...scrapers.engine import SCRAPERS
 from ..registry import mcp
+
+GATEWAY_URL = os.getenv("LLM_GATEWAY_URL", "http://127.0.0.1:10916")
+GATEWAY_PROVIDER = os.getenv("LLM_GATEWAY_PROVIDER", "")
+GATEWAY_MODEL = os.getenv("LLM_GATEWAY_MODEL", "")
+
+
+AIWATCHER_URL = os.getenv("AIWATCHER_URL", "http://127.0.0.1:10946")
+ALERT_THRESHOLD = os.getenv("SCRAPER_ALERT_THRESHOLD", "B")
+
+
+async def _alert_if_drop(repo: str, platform: str, old_grade: str | None, new_grade: str | None) -> str | None:
+    """Check if grade dropped below threshold and alert via aiwatcher."""
+    if not old_grade or not new_grade:
+        return None
+    def grade_value(g: str) -> float:
+        return {"A+": 6, "A": 5, "B": 4, "C": 3, "D": 2, "F": 1, "?": 0}.get(g.upper().strip(), 0)
+    old_v = grade_value(old_grade)
+    new_v = grade_value(new_grade)
+    threshold_v = grade_value(ALERT_THRESHOLD)
+    if new_v < threshold_v and new_v < old_v:
+        msg = f"Grade drop: {repo} fell from {old_grade} to {new_grade} on {platform}"
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                await client.post(
+                    f"{AIWATCHER_URL}/api/fleet/event",
+                    json={"title": msg, "source": "scraper-mcp", "urgency_hint": 8.0},
+                )
+        except Exception:
+            pass
+        return msg
+    return None
+
+
+async def _llm_suggest(repo: str, issue_text: str, grade: str) -> str:
+    """Send an issue to the llm-gateway for a tailored code suggestion."""
+    provider = GATEWAY_PROVIDER
+    model = GATEWAY_MODEL
+    if not provider:
+        return ""
+    prompt = (
+        f"You are a fleet MCP server expert. Repo '{repo}' has ToolBench grade {grade}.\n"
+        f"The following issue was reported:\n\n{issue_text}\n\n"
+        "Give a concise, concrete code fix suggestion (1-3 paragraphs with a code snippet)."
+    )
+    try:
+        headers = {"Content-Type": "application/json", "x-lightport-provider": provider}
+        payload = {"model": model or f"{provider}/default", "messages": [{"role": "user", "content": prompt}], "max_tokens": 512}
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(f"{GATEWAY_URL}/v1/chat/completions", json=payload, headers=headers)
+            resp.raise_for_status()
+            data = resp.json()
+            return data.get("choices", [{}])[0].get("message", {}).get("content", "")
+    except Exception:
+        return ""
 
 FLEET_OWNER = "sandraschi"
 
@@ -235,6 +291,7 @@ def _is_fleet_exception(text: str) -> bool:
 async def scraper_improve_suggest(
     repo: Annotated[str, Field(description="Repo name, e.g. 'email-mcp'.")],
     refresh: Annotated[bool, Field(description="Set true to fetch live from ToolBench.")] = True,
+    use_llm: Annotated[bool, Field(description="Use llm-gateway for AI-powered suggestions instead of templates.")] = False,
     owner: Annotated[str, Field(description="GitHub owner. Default: sandraschi.")] = FLEET_OWNER,
 ) -> dict:
     """Generate concrete, copy-paste-able code fixes from ToolBench criticisms.
