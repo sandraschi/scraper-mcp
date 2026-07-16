@@ -32,7 +32,7 @@ export default function AppsPage() {
   const withPort = apps.filter((a) => a.port > 0);
 
   return (
-    <div>
+    <div data-testid="apps">
       <h2 className="text-lg font-semibold text-slate-100 mb-2">Fleet Apps Hub</h2>
       <p className="text-sm text-slate-400 mb-4">
         {fleetTotal} repos in fleet registry · {withPort.length} with assigned webapp ports

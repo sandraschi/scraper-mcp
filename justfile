@@ -23,7 +23,7 @@ test:
     uv run pytest tests/ -v
 
 e2e:
-    pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File "D:\Dev\repos\mcp-central-docs\scripts\playwright-audit.ps1" -RepoPath "{{justfile_directory()}}"
+    Set-Location '{{justfile_directory()}}\webapp'; npx playwright test
 
 lint:
     ruff check src/ tests/
@@ -35,6 +35,14 @@ dev:
     uv run python -m scraper_mcp.server --http --port 10998
 
 # ── Tauri Native ───────────────────────────────────────────────────────────────
+
+# Certify: run all verification gates
+certify: lint
+    uv run pytest tests/ -q
+
+# Pack MCPB bundle
+mcpb-pack:
+    pwsh -NoProfile -File "{{justfile_directory()}}\scripts\mcpb-pack.ps1"
 
 # Build Tauri native desktop app (full pipeline: frontend + backend)
 build-native:

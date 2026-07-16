@@ -26,8 +26,7 @@ async def scraper_platforms(
     """
     if operation == "list":
         platforms = [
-            {"id": pid, "name": s.name, "reassess_supported": s.id == "toolbench"}
-            for pid, s in SCRAPERS.items()
+            {"id": pid, "name": s.name, "reassess_supported": s.id == "toolbench"} for pid, s in SCRAPERS.items()
         ]
         return {
             "success": True,

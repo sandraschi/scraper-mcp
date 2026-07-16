@@ -1,0 +1,25 @@
+# MCPB build ignore patterns
+.git/
+.gitignore
+.mcpbignore
+pytest_cache/
+.ruff_cache/
+.venv/
+data/
+dist/
+node_modules/
+scrape_out/
+native/
+scripts/
+tests/
+webapp/
+*.md
+CHANGELOG.md
+INSTALL.md
+README.md
+SPEC.md
+pyproject.toml
+justfile
+uv.lock
+start.ps1
+start.bat

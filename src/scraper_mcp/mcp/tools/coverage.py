@@ -11,7 +11,10 @@ from ..registry import mcp
 try:
     from .suggest import _alert_if_drop
 except ImportError:
-    async def _alert_if_drop(*args, **kwargs): return None
+
+    async def _alert_if_drop(*args, **kwargs):
+        return None
+
 
 FLEET_OWNER = "sandraschi"
 
@@ -70,7 +73,9 @@ async def scraper_refresh(
     return {
         "success": True,
         "message": f"Refreshed {total} repo-grade entries across {len(summary)} platforms.",
-        "data": {"refreshed": total, "platforms": summary, "alerts": alerts} if alerts else {"refreshed": total, "platforms": summary},
+        "data": {"refreshed": total, "platforms": summary, "alerts": alerts}
+        if alerts
+        else {"refreshed": total, "platforms": summary},
     }
 
 

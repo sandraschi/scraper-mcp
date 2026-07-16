@@ -1,0 +1,16 @@
+# scraper-mcp
+
+> Fleet MCP grade aggregator: monitors ToolBench, Glama, LobeHub coverage for sandraschi repos.
+
+## Key links
+- [llms-full.txt](llms-full.txt) — full tool listing, architecture, env vars
+- [README.md](README.md) — full documentation
+- [GitHub](https://github.com/sandraschi/scraper-mcp)
+
+## Quick start
+```
+cd D:\Dev\repos\scraper-mcp
+.\start.ps1
+```
+
+Backend: http://127.0.0.1:10998  |  Frontend: http://127.0.0.1:10999  |  MCP: http://127.0.0.1:10998/mcp

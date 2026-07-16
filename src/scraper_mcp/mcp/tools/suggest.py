@@ -23,8 +23,10 @@ async def _alert_if_drop(repo: str, platform: str, old_grade: str | None, new_gr
     """Check if grade dropped below threshold and alert via aiwatcher."""
     if not old_grade or not new_grade:
         return None
+
     def grade_value(g: str) -> float:
         return {"A+": 6, "A": 5, "B": 4, "C": 3, "D": 2, "F": 1, "?": 0}.get(g.upper().strip(), 0)
+
     old_v = grade_value(old_grade)
     new_v = grade_value(new_grade)
     threshold_v = grade_value(ALERT_THRESHOLD)
@@ -55,7 +57,11 @@ async def _llm_suggest(repo: str, issue_text: str, grade: str) -> str:
     )
     try:
         headers = {"Content-Type": "application/json", "x-lightport-provider": provider}
-        payload = {"model": model or f"{provider}/default", "messages": [{"role": "user", "content": prompt}], "max_tokens": 512}
+        payload = {
+            "model": model or f"{provider}/default",
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": 512,
+        }
         async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.post(f"{GATEWAY_URL}/v1/chat/completions", json=payload, headers=headers)
             resp.raise_for_status()
@@ -64,13 +70,21 @@ async def _llm_suggest(repo: str, issue_text: str, grade: str) -> str:
     except Exception:
         return ""
 
+
 FLEET_OWNER = "sandraschi"
 
 # Code-level fix templates for each common ToolBench issue pattern
 FIX_TEMPLATES: list[dict] = [
     {
-        "triggers": ["constrained-input", "parameter", "underspecified", "free-form string",
-                     "missing enum", "untyped string", "operation.*str"],
+        "triggers": [
+            "constrained-input",
+            "parameter",
+            "underspecified",
+            "free-form string",
+            "missing enum",
+            "untyped string",
+            "operation.*str",
+        ],
         "severity": "critical",
         "title": "Add Literal constraints to string parameters",
         "code": """from typing import Literal
@@ -86,8 +100,14 @@ operation: Literal["list", "get", "create", "delete", "update"]
         "tools": "all portmanteau tools",
     },
     {
-        "triggers": ["param-validation-rules", "numeric param", "range constraint",
-                     "min.*max", "missing.*range", "no.*bounds"],
+        "triggers": [
+            "param-validation-rules",
+            "numeric param",
+            "range constraint",
+            "min.*max",
+            "missing.*range",
+            "no.*bounds",
+        ],
         "severity": "high",
         "title": "Add numeric bounds to integer/float parameters",
         "code": """from typing_extensions import Annotated
@@ -102,8 +122,14 @@ port: Annotated[int, Field(ge=1, le=65535, description="TCP port number")]
         "tools": "tools with numeric params (ports, counts, sizes, timeouts)",
     },
     {
-        "triggers": ["response-shaper", "output.*schema", "output.*document",
-                     "return.*undocumented", "no.*output", "chaining"],
+        "triggers": [
+            "response-shaper",
+            "output.*schema",
+            "output.*document",
+            "return.*undocumented",
+            "no.*output",
+            "chaining",
+        ],
         "severity": "critical",
         "title": "Document the return shape in the docstring",
         "code": """# Add to every tool docstring:
@@ -121,8 +147,7 @@ port: Annotated[int, Field(ge=1, le=65535, description="TCP port number")]
         "tools": "every tool that returns a dict",
     },
     {
-        "triggers": ["recovery-guide", "error handling", "error.*recovery", "retryable",
-                     "what can go wrong"],
+        "triggers": ["recovery-guide", "error handling", "error.*recovery", "retryable", "what can go wrong"],
         "severity": "critical",
         "title": "Add structured error responses with recovery hints",
         "code": """# Return pattern for error cases:
@@ -141,8 +166,14 @@ return {
         "tools": "all tools that call external APIs or services",
     },
     {
-        "triggers": ["tool-description", "description.*generic", "actionable",
-                     "llm guidance", "not explain", "when to use"],
+        "triggers": [
+            "tool-description",
+            "description.*generic",
+            "actionable",
+            "llm guidance",
+            "not explain",
+            "when to use",
+        ],
         "severity": "high",
         "title": "Rewrite tool descriptions as actionable LLM guidance",
         "code": """# Before (generic):
@@ -162,8 +193,7 @@ Returns: summary of the applied network changes.
         "tools": "tools with short or generic descriptions",
     },
     {
-        "triggers": ["confirmation-request", "destructive", "irreversible",
-                     "dry.run", "confirm", "preview"],
+        "triggers": ["confirmation-request", "destructive", "irreversible", "dry.run", "confirm", "preview"],
         "severity": "high",
         "title": "Add a confirm/dry-run guard to destructive operations",
         "code": """# Add a confirm parameter to destructive tools:
@@ -187,8 +217,7 @@ async def delete_resource(
         "tools": "tools that delete, overwrite, or modify state irreversibly",
     },
     {
-        "triggers": ["tool-name", "naming", "verb.*prefix", "action verb",
-                     "generic name", "not start with verb"],
+        "triggers": ["tool-name", "naming", "verb.*prefix", "action verb", "generic name", "not start with verb"],
         "severity": "high",
         "title": "Rename tools to verb-led snake_case",
         "code": """# Use FastMCP's name= override to keep internal function names:
@@ -227,16 +256,21 @@ async def my_tool(...) -> dict:
         "tools": "tools with stable return shapes",
     },
     {
-        "triggers": ["annotations", "tool annotations", "read.only", "mutating",
-                     "destructive.*annotation", "missing annotation"],
+        "triggers": [
+            "annotations",
+            "tool annotations",
+            "read.only",
+            "mutating",
+            "destructive.*annotation",
+            "missing annotation",
+        ],
         "severity": "medium",
         "title": "Set MCP ToolAnnotations on every tool",
-        "code": "from fastmcp import FastMCP\n\n_README_ONLY = {\"readonly\": True}\n_MUTATING = {}\n\n@mcp.tool(annotations=_README_ONLY)\nasync def list_items(...):\n    ...\n\n@mcp.tool(annotations=_MUTATING)\nasync def create_item(...):\n    ...\n",
+        "code": 'from fastmcp import FastMCP\n\n_README_ONLY = {"readonly": True}\n_MUTATING = {}\n\n@mcp.tool(annotations=_README_ONLY)\nasync def list_items(...):\n    ...\n\n@mcp.tool(annotations=_MUTATING)\nasync def create_item(...):\n    ...\n',
         "tools": "all tools",
     },
     {
-        "triggers": ["pagination", "unbounded", "growing collection", "limit",
-                     "page", "context blowup"],
+        "triggers": ["pagination", "unbounded", "growing collection", "limit", "page", "context blowup"],
         "severity": "medium",
         "title": "Add pagination parameters to list/search tools",
         "code": """# Add these parameters to any tool that returns a list:
@@ -276,8 +310,10 @@ def _extract_severity(issue_text: str) -> str:
 SEVERITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
 
 FLEET_EXCEPTION_PATTERNS = [
-    "single-responsibility", "bundles multiple unrelated operations",
-    "portmanteau pattern", "multiple operations into a single",
+    "single-responsibility",
+    "bundles multiple unrelated operations",
+    "portmanteau pattern",
+    "multiple operations into a single",
     "one tool per action",
 ]
 
@@ -291,7 +327,9 @@ def _is_fleet_exception(text: str) -> bool:
 async def scraper_improve_suggest(
     repo: Annotated[str, Field(description="Repo name, e.g. 'email-mcp'.")],
     refresh: Annotated[bool, Field(description="Set true to fetch live from ToolBench.")] = True,
-    use_llm: Annotated[bool, Field(description="Use llm-gateway for AI-powered suggestions instead of templates.")] = False,
+    use_llm: Annotated[
+        bool, Field(description="Use llm-gateway for AI-powered suggestions instead of templates.")
+    ] = False,
     owner: Annotated[str, Field(description="GitHub owner. Default: sandraschi.")] = FLEET_OWNER,
 ) -> dict:
     """Generate concrete, copy-paste-able code fixes from ToolBench criticisms.
@@ -321,8 +359,7 @@ async def scraper_improve_suggest(
         if tb_scraper:
             result = await tb_scraper.fetch_grade(owner, repo)
             if result:
-                upsert_grade("toolbench", owner, repo,
-                             result.get("grade"), result.get("score"), result)
+                upsert_grade("toolbench", owner, repo, result.get("grade"), result.get("score"), result)
                 raw = result
 
     if not raw:
@@ -342,23 +379,24 @@ async def scraper_improve_suggest(
     for issue_text in issues:
         if _is_fleet_exception(issue_text):
             continue
-        severity = _extract_severity(issue_text)
         for sev_prefix in ("critical ", "high ", "medium ", "low "):
             if issue_text.lower().startswith(sev_prefix):
-                issue_text = issue_text[len(sev_prefix):]
+                issue_text = issue_text[len(sev_prefix) :]
                 break
         matches = _match_templates(issue_text)
         for tmpl in matches:
             tid = tmpl["title"]
             if tid not in seen_templates:
                 seen_templates.add(tid)
-                suggestions.append({
-                    "severity": tmpl["severity"],
-                    "title": tmpl["title"],
-                    "code": tmpl["code"].strip(),
-                    "applies_to": tmpl["tools"],
-                    "issue": issue_text[:200],
-                })
+                suggestions.append(
+                    {
+                        "severity": tmpl["severity"],
+                        "title": tmpl["title"],
+                        "code": tmpl["code"].strip(),
+                        "applies_to": tmpl["tools"],
+                        "issue": issue_text[:200],
+                    }
+                )
 
     suggestions.sort(key=lambda s: SEVERITY_ORDER.get(s["severity"], 99))
 

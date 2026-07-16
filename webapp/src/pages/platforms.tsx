@@ -32,11 +32,11 @@ const PLATFORMS = [
 
 export default function Platforms() {
   return (
-    <div>
+    <div data-testid="platforms">
       <h2 className="text-lg font-semibold text-slate-100 mb-6">Grading Platforms</h2>
       <div className="space-y-4">
         {PLATFORMS.map((p) => (
-          <div key={p.id} className="bg-slate-900 border border-slate-800 rounded-lg p-5">
+          <div key={p.id} data-testid={`platform-name-${p.id}`} className="bg-slate-900 border border-slate-800 rounded-lg p-5">
             <div className="flex items-start justify-between mb-2">
               <div>
                 <h3 className="text-sm font-semibold text-slate-200">{p.name}</h3>

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, Query
@@ -22,7 +23,7 @@ def build_app() -> FastAPI:
     from scraper_mcp.mcp import tools as _tools  # noqa: F401 — register MCP tools
     from scraper_mcp.mcp.registry import mcp
 
-    mcp_http = mcp.http_app(path="/mcp")
+    mcp_http = mcp.http_app(path="/")
     install_log_handler()
     log_activity("system", "scraper-mcp backend starting", level="INFO")
 
@@ -36,8 +37,13 @@ def build_app() -> FastAPI:
         allow_origins=[
             f"http://127.0.0.1:{settings.webapp_port}",
             f"http://localhost:{settings.webapp_port}",
-            "*",
+            f"http://127.0.0.1:{settings.port}",
+            f"http://localhost:{settings.port}",
+            "tauri://localhost",
+            "http://tauri.localhost",
+            "https://tauri.localhost",
         ],
+        allow_origin_regex=r"https?://(?:[a-zA-Z0-9-]+\.ts\.net|.*?\.tail-[a-f0-9]+\.ts\.net|tauri\.localhost|localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|100\.\d{1,3}\.\d{1,3}\.\d{1,3})(?::\d+)?$|^tauri://localhost$",
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -114,6 +120,7 @@ def build_app() -> FastAPI:
     @app.get("/api/llm/providers")
     async def llm_providers() -> dict:
         import httpx
+
         models: list[str] = []
         try:
             async with httpx.AsyncClient(timeout=5) as client:
@@ -129,6 +136,7 @@ def build_app() -> FastAPI:
     @app.post("/api/llm/chat")
     async def llm_chat(body: dict) -> dict:
         import httpx
+
         model = body.get("model", "gemma3:1b")
         prompt = body.get("prompt", "")
         try:
@@ -155,6 +163,24 @@ def build_app() -> FastAPI:
             "platforms": matrix["platforms"],
             "latest_grades": len(latest),
         }
+
+    skills_dir = Path(__file__).parent / "skills"
+
+    @app.get("/api/skills")
+    async def list_skills():
+        skills = []
+        if skills_dir.is_dir():
+            for sd in skills_dir.iterdir():
+                if (sd / "SKILL.md").is_file():
+                    skills.append({"name": sd.name, "uri": f"/api/skills/{sd.name}"})
+        return {"skills": skills}
+
+    @app.get("/api/skills/{skill_name}")
+    async def get_skill(skill_name: str):
+        skill_path = skills_dir / skill_name / "SKILL.md"
+        if skill_path.is_file():
+            return skill_path.read_text(encoding="utf-8")
+        return {"error": "Skill not found"}, 404
 
     @app.get("/api/trends")
     async def api_trends() -> dict:
@@ -274,8 +300,14 @@ def build_app() -> FastAPI:
                     gl_grade = entry.get("grade") or "?"
 
         def grade_color(g: str) -> str:
-            return {"A+": "#2ea44f", "A": "#2ea44f", "B": "#0969da",
-                    "C": "#d4a72c", "D": "#d93f21", "F": "#cf222e"}.get(g, "#6e7681")
+            return {
+                "A+": "#2ea44f",
+                "A": "#2ea44f",
+                "B": "#0969da",
+                "C": "#d4a72c",
+                "D": "#d93f21",
+                "F": "#cf222e",
+            }.get(g, "#6e7681")
 
         svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="220" height="20">
   <linearGradient id="b" x2="0" y2="100%"><stop offset="0" stop-color="#bbb" stop-opacity=".1"/><stop offset="1" stop-opacity=".1"/></linearGradient>
@@ -288,6 +320,7 @@ def build_app() -> FastAPI:
   <text x="162" y="14" fill="#fff" font-family="DejaVu Sans,sans-serif" font-size="11" font-weight="bold">GL {gl_grade}</text>
 </svg>'''
         from fastapi.responses import Response
+
         return Response(content=svg, media_type="image/svg+xml")
 
     @app.get("/api/export")
@@ -302,9 +335,13 @@ def build_app() -> FastAPI:
             "owner": owner,
             "repo_count": matrix["repo_count"],
             "grades": [
-                {"platform": e["platform"], "repo": e["repo"],
-                 "grade": e["grade"], "score": e["score"],
-                 "fetched_at": e["fetched_at"]}
+                {
+                    "platform": e["platform"],
+                    "repo": e["repo"],
+                    "grade": e["grade"],
+                    "score": e["score"],
+                    "fetched_at": e["fetched_at"],
+                }
                 for e in latest
             ],
         }

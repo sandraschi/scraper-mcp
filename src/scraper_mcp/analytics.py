@@ -41,29 +41,35 @@ def _get_db() -> sqlite3.Connection:
     return conn
 
 
-def upsert_grade(platform: str, owner: str, repo: str, grade: str | None,
-                 score: float | None, raw: dict | None) -> None:
+def upsert_grade(
+    platform: str, owner: str, repo: str, grade: str | None, score: float | None, raw: dict | None
+) -> None:
     """Insert or update a grade snapshot, recording history on change."""
     conn = _get_db()
     now = time.time()
     raw_str = json.dumps(raw) if raw else None
-    conn.execute("""
+    conn.execute(
+        """
         INSERT INTO grades (platform, owner, repo, grade, score, raw_json, fetched_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(platform, owner, repo) DO UPDATE SET
             grade=excluded.grade, score=excluded.score,
             raw_json=excluded.raw_json, fetched_at=excluded.fetched_at
-    """, (platform, owner, repo, grade, score, raw_str, now))
-    conn.execute("""
+    """,
+        (platform, owner, repo, grade, score, raw_str, now),
+    )
+    conn.execute(
+        """
         INSERT INTO grade_history (platform, owner, repo, grade, score, raw_json, recorded_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (platform, owner, repo, grade, score, raw_str, now))
+    """,
+        (platform, owner, repo, grade, score, raw_str, now),
+    )
     conn.commit()
     conn.close()
 
 
-def get_latest(platform: str | None = None, owner: str | None = None,
-               repo: str | None = None) -> list[dict]:
+def get_latest(platform: str | None = None, owner: str | None = None, repo: str | None = None) -> list[dict]:
     """Get latest grades, optionally filtered."""
     conn = _get_db()
     query = "SELECT platform, owner, repo, grade, score, raw_json, fetched_at FROM grades WHERE 1=1"
@@ -80,8 +86,15 @@ def get_latest(platform: str | None = None, owner: str | None = None,
     rows = conn.execute(query, params).fetchall()
     conn.close()
     return [
-        {"platform": r[0], "owner": r[1], "repo": r[2], "grade": r[3],
-         "score": r[4], "raw": json.loads(r[5]) if r[5] else None, "fetched_at": r[6]}
+        {
+            "platform": r[0],
+            "owner": r[1],
+            "repo": r[2],
+            "grade": r[3],
+            "score": r[4],
+            "raw": json.loads(r[5]) if r[5] else None,
+            "fetched_at": r[6],
+        }
         for r in rows
     ]
 
@@ -96,15 +109,14 @@ def get_history(platform: str, owner: str, repo: str, limit: int = 20) -> list[d
     ).fetchall()
     conn.close()
     return [
-        {"grade": r[0], "score": r[1], "raw": json.loads(r[2]) if r[2] else None,
-         "recorded_at": r[3]}
-        for r in rows
+        {"grade": r[0], "score": r[1], "raw": json.loads(r[2]) if r[2] else None, "recorded_at": r[3]} for r in rows
     ]
 
 
 def get_coverage_matrix(owner: str) -> dict:
     """Build a coverage matrix: repos × platforms with grades."""
     import json
+
     from scraper_mcp.fleet_registry import load_fleet_repo_ids
     from scraper_mcp.scrapers.engine import SCRAPERS
 

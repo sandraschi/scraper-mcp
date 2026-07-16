@@ -76,7 +76,9 @@ PLATFORM_DETAIL = """## Platform Detail
 async def scraper_help(
     level: Annotated[
         Literal["basic", "advanced", "platform"],
-        Field(description="Detail level: basic = commands, advanced = all tools + workflow, platform = per-platform grading detail")
+        Field(
+            description="Detail level: basic = commands, advanced = all tools + workflow, platform = per-platform grading detail"
+        ),
     ] = "basic",
 ) -> dict:
     """Multi-level help for scraper-mcp.

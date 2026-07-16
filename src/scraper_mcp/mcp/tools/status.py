@@ -1,8 +1,8 @@
 """scraper_status — server health, last refresh, platform status."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 
-from ...analytics import get_latest, get_coverage_matrix
+from ...analytics import get_coverage_matrix, get_latest
 from ...scrapers.engine import SCRAPERS
 from ..registry import mcp
 
@@ -24,7 +24,6 @@ async def scraper_status() -> dict:
     await scraper_status()
     """
     import time
-    from datetime import timezone
 
     matrix = get_coverage_matrix("sandraschi")
     latest = get_latest(owner="sandraschi")
@@ -34,16 +33,18 @@ async def scraper_status() -> dict:
     for pid, scraper in SCRAPERS.items():
         entries = [e for e in latest if e["platform"] == pid]
         last_ts = max((e["fetched_at"] for e in entries), default=0)
-        last_fetch = datetime.fromtimestamp(last_ts, tz=timezone.utc).isoformat() if last_ts else "never"
+        last_fetch = datetime.fromtimestamp(last_ts, tz=UTC).isoformat() if last_ts else "never"
         stale = last_ts > 0 and (now - last_ts) > 86400 * 3
         repos_found = len({e["repo"] for e in entries})
-        platform_info.append({
-            "id": pid,
-            "name": scraper.name,
-            "last_fetch": last_fetch,
-            "stale": stale,
-            "repos_found": repos_found,
-        })
+        platform_info.append(
+            {
+                "id": pid,
+                "name": scraper.name,
+                "last_fetch": last_fetch,
+                "stale": stale,
+                "repos_found": repos_found,
+            }
+        )
 
     # Grade distribution across all platforms
     grades: dict[str, int] = {"A+": 0, "A": 0, "B": 0, "C": 0, "D": 0, "F": 0}

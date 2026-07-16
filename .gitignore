@@ -19,3 +19,14 @@ webapp/dist/
 # Env
 .env
 _dashboard/
+# Build artifacts
+*.mcpb
+*.bak
+docs/assess-reports/
+
+# Tauri
+native/target/
+native/resources/*.exe
+native/binaries/*.exe
+native/gen/
+BUILD_LOG.md

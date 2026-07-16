@@ -13,12 +13,16 @@ FLEET_OWNER = "sandraschi"
 # Known fleet exceptions — criteria we explicitly disagree with
 FLEET_EXCEPTIONS = {
     "portmanteau": [
-        "single-responsibility", "bundles multiple unrelated operations",
-        "portmanteau pattern", "multiple operations into a single",
+        "single-responsibility",
+        "bundles multiple unrelated operations",
+        "portmanteau pattern",
+        "multiple operations into a single",
         "does many different things",
     ],
     "one_action_per_tool": [
-        "one tool per action", "atomic tool", "single action per tool",
+        "one tool per action",
+        "atomic tool",
+        "single action per tool",
     ],
 }
 
@@ -120,8 +124,7 @@ async def scraper_improvement_plan(
         if tb_scraper:
             result = await tb_scraper.fetch_grade(owner, repo)
             if result:
-                upsert_grade("toolbench", owner, repo,
-                             result.get("grade"), result.get("score"), result)
+                upsert_grade("toolbench", owner, repo, result.get("grade"), result.get("score"), result)
                 raw = result
 
     if not raw:
@@ -148,14 +151,16 @@ async def scraper_improvement_plan(
         clean_text = issue_text
         for sev in ("critical ", "high ", "medium ", "low "):
             if clean_text.lower().startswith(sev):
-                clean_text = clean_text[len(sev):]
+                clean_text = clean_text[len(sev) :]
                 break
         fixes = _classify_issue(issue_text)
-        filtered.append({
-            "severity": severity,
-            "text": clean_text[:300],
-            "fixes": fixes,
-        })
+        filtered.append(
+            {
+                "severity": severity,
+                "text": clean_text[:300],
+                "fixes": fixes,
+            }
+        )
 
     filtered.sort(key=_severity_sort_key)
 
@@ -180,8 +185,10 @@ async def scraper_improvement_plan(
         summary_lines.append("### Issues by Priority")
         for i, issue in enumerate(filtered, 1):
             sev_tag = {
-                "critical": "CRIT", "high": "HIGH",
-                "medium": "MED", "low": "LOW",
+                "critical": "CRIT",
+                "high": "HIGH",
+                "medium": "MED",
+                "low": "LOW",
             }.get(issue["severity"], "???")
             summary_lines.append(f"\n**{i}. [{sev_tag}]** {issue['text'][:200]}")
             for fix in issue["fixes"]:
@@ -193,7 +200,7 @@ async def scraper_improvement_plan(
             summary_lines.append(f"- {t.get('name')}: risk {t.get('risk_score', '?')}")
 
     if skipped:
-        summary_lines.append(f"\n### Skipped (Fleet Exceptions)")
+        summary_lines.append("\n### Skipped (Fleet Exceptions)")
         for s in skipped:
             summary_lines.append(f"- {s[:100]}")
 

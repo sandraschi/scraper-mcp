@@ -171,10 +171,10 @@ export default function Dashboard() {
   const allPlatforms = data?.platforms || ["toolbench", "glama", "lobehub"];
 
   return (
-    <div>
+    <div data-testid="dashboard">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-lg font-semibold text-slate-100">Fleet Coverage Matrix</h2>
+          <h2 data-testid="kpi-server" className="text-lg font-semibold text-slate-100">Fleet Coverage Matrix</h2>
           <p className="text-sm text-slate-400 mt-1">
             {data
               ? `${data.repo_count} repos${data.fleet_total ? ` (${data.fleet_total} fleet)` : ""}`
@@ -183,6 +183,7 @@ export default function Dashboard() {
           </p>
         </div>
         <button
+          data-testid="refresh-all"
           onClick={handleRefresh}
           disabled={refreshing}
           className="flex items-center gap-2 px-4 py-2 bg-fleet-600 hover:bg-fleet-500 disabled:opacity-50 rounded-lg text-sm font-medium transition-colors"

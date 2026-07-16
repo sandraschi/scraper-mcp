@@ -5,7 +5,7 @@ and extracts per-tool grades, 6 TDQS dimension scores, and metadata.
 """
 
 import re
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 from bs4 import BeautifulSoup
@@ -15,16 +15,16 @@ _USER_AGENT = "scraper-mcp/0.1 (fleet monitor; polite daily scrape)"
 
 
 def _parse_grade(text: str) -> str:
-    m = re.search(r'\b[ABCDF]\b', text)
+    m = re.search(r"\b[ABCDF]\b", text)
     return m.group(0) if m else ""
 
 
 def _parse_score(text: str) -> float:
-    m = re.search(r'([\d.]+)\s*/\s*5', text)
+    m = re.search(r"([\d.]+)\s*/\s*5", text)
     return float(m.group(1)) if m else 0.0
 
 
-async def scrape_score_page(owner: str, repo: str, slug: str = "") -> Optional[dict[str, Any]]:
+async def scrape_score_page(owner: str, repo: str, slug: str = "") -> dict[str, Any] | None:
     """Fetch and parse a Glama score page.
 
     Returns dict with:
@@ -49,7 +49,6 @@ async def scrape_score_page(owner: str, repo: str, slug: str = "") -> Optional[d
             return None
 
     soup = BeautifulSoup(resp.text, "lxml")
-    text = soup.get_text(strip=True)
 
     result: dict[str, Any] = {
         "url": url,
@@ -57,16 +56,16 @@ async def scrape_score_page(owner: str, repo: str, slug: str = "") -> Optional[d
     }
 
     # Profile completion %
-    el = soup.find(string=re.compile(r'(\d+)%'))
+    el = soup.find(string=re.compile(r"(\d+)%"))
     if el:
-        m = re.search(r'(\d+)%', str(el))
+        m = re.search(r"(\d+)%", str(el))
         if m:
             result["profile_completion"] = int(m.group(1))
 
     # Latest release
-    el = soup.find(string=re.compile(r'Latest release', re.I))
+    el = soup.find(string=re.compile(r"Latest release", re.I))
     if el and el.parent:
-        m = re.search(r'v?[\d]+\.[\d]+\.[\d]+[^\s]*', el.parent.get_text(strip=True))
+        m = re.search(r"v?[\d]+\.[\d]+\.[\d]+[^\s]*", el.parent.get_text(strip=True))
         if m:
             result["latest_release"] = m.group(0)
 
@@ -89,7 +88,7 @@ async def scrape_score_page(owner: str, repo: str, slug: str = "") -> Optional[d
     coherence_labels = {"Disambiguation", "Naming Consistency", "Tool Count", "Completeness"}
     for span in soup.find_all("span", class_=lambda c: c and "czikZZ" in str(c)):
         st = span.get_text(strip=True)
-        m = re.search(r'^(\d+(?:\.\d+)?)\s*/\s*5$', st)
+        m = re.search(r"^(\d+(?:\.\d+)?)\s*/\s*5$", st)
         if not m:
             continue
         parent = span.parent
@@ -107,8 +106,8 @@ async def scrape_score_page(owner: str, repo: str, slug: str = "") -> Optional[d
     for el in soup.find_all(["p", "div", "span"]):
         txt = el.get_text(strip=True)
         if "Average" in txt and "Lowest" in txt:
-            m_mean = re.search(r'Average\s*([\d.]+)\s*/?\s*5', txt)
-            m_min = re.search(r'Lowest:\s*([\d.]+)\s*/?\s*5', txt)
+            m_mean = re.search(r"Average\s*([\d.]+)\s*/?\s*5", txt)
+            m_min = re.search(r"Lowest:\s*([\d.]+)\s*/?\s*5", txt)
             if m_mean:
                 result["tdqs_mean"] = float(m_mean.group(1))
             if m_min:
@@ -164,10 +163,15 @@ async def scrape_score_page(owner: str, repo: str, slug: str = "") -> Optional[d
         overall = 0.6 * tdqs_mean + 0.4 * tdqs_min
         result["score"] = round(overall, 2)
         result["grade"] = (
-            "A" if overall >= 3.5 else
-            "B" if overall >= 3.0 else
-            "C" if overall >= 2.0 else
-            "D" if overall >= 1.0 else "F"
+            "A"
+            if overall >= 3.5
+            else "B"
+            if overall >= 3.0
+            else "C"
+            if overall >= 2.0
+            else "D"
+            if overall >= 1.0
+            else "F"
         )
     elif tools:
         scores = [t["score"] for t in tools if t.get("score", 0) > 0]
@@ -175,10 +179,15 @@ async def scrape_score_page(owner: str, repo: str, slug: str = "") -> Optional[d
             overall = 0.6 * (sum(scores) / len(scores)) + 0.4 * min(scores)
             result["score"] = round(overall, 2)
             result["grade"] = (
-                "A" if overall >= 3.5 else
-                "B" if overall >= 3.0 else
-                "C" if overall >= 2.0 else
-                "D" if overall >= 1.0 else "F"
+                "A"
+                if overall >= 3.5
+                else "B"
+                if overall >= 3.0
+                else "C"
+                if overall >= 2.0
+                else "D"
+                if overall >= 1.0
+                else "F"
             )
 
     return result

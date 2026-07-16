@@ -6,7 +6,7 @@ has the full report with dimension scores, top issues, and per-tool risk.
 """
 
 import re
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 from bs4 import BeautifulSoup
@@ -16,11 +16,11 @@ _USER_AGENT = "scraper-mcp/0.1 (fleet monitor; polite daily scrape)"
 
 
 def _extract_pct(text: str, label: str) -> float:
-    m = re.search(rf'{re.escape(label)}\s*(\d+(?:\.\d+)?)', text)
+    m = re.search(rf"{re.escape(label)}\s*(\d+(?:\.\d+)?)", text)
     return float(m.group(1)) if m else 0.0
 
 
-async def search_server_id(repo: str) -> Optional[str]:
+async def search_server_id(repo: str) -> str | None:
     """Search ToolBench API for a repo's server ID."""
     async with httpx.AsyncClient(timeout=15, http2=False) as client:
         r = await client.get(
@@ -44,7 +44,7 @@ async def search_server_id(repo: str) -> Optional[str]:
     return None
 
 
-async def scrape_assessment(server_id: str) -> Optional[dict[str, Any]]:
+async def scrape_assessment(server_id: str) -> dict[str, Any] | None:
     """Scrape a ToolBench assessment page for detailed report data.
 
     Returns dict with grade, trust_score, dimension scores, top issues, tools.
@@ -73,7 +73,7 @@ async def scrape_assessment(server_id: str) -> Optional[dict[str, Any]]:
 
     # Grade — find e.g. "F" in grade badge
     for grade in ("A+", "A", "B", "C", "D", "F"):
-        m = re.search(rf'\b{re.escape(grade)}\b', text)
+        m = re.search(rf"\b{re.escape(grade)}\b", text)
         if m:
             result["grade"] = grade
             break
@@ -123,7 +123,7 @@ async def scrape_assessment(server_id: str) -> Optional[dict[str, Any]]:
                     name = cells[0].get_text(strip=True)
                     risk = 0
                     for c in cells:
-                        rm = re.search(r'(\d+)', c.get_text(strip=True))
+                        rm = re.search(r"(\d+)", c.get_text(strip=True))
                         if rm:
                             risk = float(rm.group(1))
                     if name and len(name) < 100:
@@ -144,11 +144,11 @@ async def scrape_assessment(server_id: str) -> Optional[dict[str, Any]]:
 
 
 def _extract_number(text: str) -> float:
-    m = re.search(r'(\d+(?:\.\d+)?)', text)
+    m = re.search(r"(\d+(?:\.\d+)?)", text)
     return float(m.group(1)) if m else 0.0
 
 
-async def fetch_grade_with_details(owner: str, repo: str) -> Optional[dict[str, Any]]:
+async def fetch_grade_with_details(owner: str, repo: str) -> dict[str, Any] | None:
     """Combined: search API for server ID, then scrape assessment page.
 
     Returns detailed grade dict or None if not found.

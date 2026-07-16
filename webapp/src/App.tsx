@@ -10,8 +10,10 @@ import AppsPage from "./pages/apps";
 import HelpPage from "./pages/help";
 import SettingsPage from "./pages/settings";
 import FloatingChat from "./components/FloatingChat";
+import { useZoom } from "./lib/use-zoom";
 
 export default function App() {
+  useZoom();
   return (
     <LoggerProvider>
       <BrowserRouter>

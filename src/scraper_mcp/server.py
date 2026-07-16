@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 
 import uvicorn
 
@@ -17,6 +18,33 @@ def build_app():
 
 
 def main() -> None:
+    proxy_url = os.getenv("SCRAPER_MCP_API_URL", "http://127.0.0.1:10998/mcp")
+    try:
+        import httpx
+
+        r = httpx.post(
+            proxy_url,
+            json={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": "2025-11-25",
+                    "capabilities": {},
+                    "clientInfo": {"name": "probe", "version": "1"},
+                },
+            },
+            headers={"Accept": "application/json, text/event-stream"},
+            timeout=0.5,
+        )
+        if r.status_code == 200:
+            from fastmcp.server import create_proxy
+
+            proxy = create_proxy(proxy_url, name="scraper-mcp")
+            proxy.run(transport="stdio")
+            return
+    except Exception:
+        pass
     parser = argparse.ArgumentParser(description="scraper-mcp server")
     parser.add_argument("--http", action="store_true", help="Run FastAPI HTTP server (default)")
     parser.add_argument("--stdio", action="store_true", help="MCP stdio transport")

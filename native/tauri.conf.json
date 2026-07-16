@@ -1,0 +1,36 @@
+{
+  "productName": "scraper MCP",
+  "version": "0.1.0",
+  "identifier": "ai.fleet.scraper-mcp",
+  "build": {
+    "frontendDist": "..\webapp\dist",
+    "devUrl": "http://localhost:10999",
+    "beforeDevCommand": "pwsh -NoProfile -Command \"npm --prefix ../webapp run dev\""
+    
+  },
+  "app": {
+    "windows": [{
+      "label": "main",
+      "title": "scraper MCP",
+      "width": 1100, "height": 750,
+      "minWidth": 700, "minHeight": 500
+    }],
+    "security": { "csp": null }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": ["icons/icon.ico", "icons/icon.png"],
+    "resources": [
+      "resources/scraper-mcp-backend.exe",
+      "resources/.env.example"
+    ],
+    "windows": {
+      "webviewInstallMode": { "type": "skip" },
+      "nsis": {
+        "installMode": "currentUser",
+        "installerHooks": "./windows/hooks.nsh"
+      }
+    }
+  }
+}

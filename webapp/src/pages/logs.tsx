@@ -74,7 +74,7 @@ export default function LogsPage() {
   };
 
   return (
-    <div>
+    <div data-testid="logs">
       <h1 style={{ fontSize: "1.5rem", marginTop: 0 }}>Event Logs</h1>
       <p style={{ color: "var(--muted)", lineHeight: 1.55 }}>
         Fleet ring buffer at <code>/api/logs</code> — WEBAPP_LOGS_PAGE.md v1.0.

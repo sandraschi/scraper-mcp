@@ -132,7 +132,7 @@ export default function HelpPage() {
   const [tab, setTab] = useState<Tab>("overview");
 
   return (
-    <div>
+    <div data-testid="help">
       {/* Horizontal tabs */}
       <div className="flex border-b border-slate-800 mb-6 overflow-x-auto">
         {TABS.map((t) => (

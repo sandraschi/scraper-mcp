@@ -157,7 +157,7 @@ export default function RepoDetail() {
   }
 
   return (
-    <div>
+    <div data-testid="repo-detail">
       <div className="flex items-center gap-4 mb-6">
         <Link to="/" className="text-slate-500 hover:text-slate-300"><ArrowLeft size={18} /></Link>
         <h2 className="text-lg font-semibold text-slate-100 font-mono">{repoName}</h2>
@@ -180,7 +180,7 @@ export default function RepoDetail() {
             const hist = history[pid] || [];
             const prevRaw = hist.length > 1 ? hist[1]?.raw : null;
             return (
-              <div key={pid} className="bg-slate-900 border border-slate-800 rounded-lg p-4">
+              <div key={pid} data-testid={`grade-${pid}`} className="bg-slate-900 border border-slate-800 rounded-lg p-4">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-semibold text-slate-200">{PLATFORM_NAMES[pid] || pid}</h3>

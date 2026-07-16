@@ -34,11 +34,22 @@ def _normalize_row(repo: str, **fields: Any) -> GradeRow:
         "tools": fields.get("tools", 0),
     }
     # Pass through extra fields for raw_json storage
-    for key in ("tdqs_mean", "tdqs_min", "tdqs_grade", "coherence_grade",
-                "maintenance_grade", "tool_details", "latest_release",
-                "profile_completion", "definition_score", "protocol_score",
-                "supportability_score", "trust_score", "top_issues",
-                "server_id"):
+    for key in (
+        "tdqs_mean",
+        "tdqs_min",
+        "tdqs_grade",
+        "coherence_grade",
+        "maintenance_grade",
+        "tool_details",
+        "latest_release",
+        "profile_completion",
+        "definition_score",
+        "protocol_score",
+        "supportability_score",
+        "trust_score",
+        "top_issues",
+        "server_id",
+    ):
         if key in fields:
             row[key] = fields[key]
     return row

@@ -7,6 +7,7 @@ from typing import Annotated, Any, Literal, assert_never
 from pydantic import Field
 
 from scraper_mcp import content
+
 from ..registry import mcp
 
 GuideOperation = Literal[

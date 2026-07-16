@@ -1,0 +1,88 @@
+# scraper-mcp — Full Documentation
+
+## Overview
+scraper-mcp is a FastMCP 3.2 fleet server that monitors MCP repo grades
+across ToolBench (Arcade.dev), Glama.ai, and LobeHub Marketplace.
+Replaces deprecated toolbench-mcp.
+
+## Ports
+- Backend (FastAPI + FastMCP HTTP): 10998
+- Frontend (Vite + React): 10999
+
+## Quick Start
+```powershell
+git clone https://github.com/sandraschi/scraper-mcp
+cd scraper-mcp
+uv sync
+.\start.ps1
+```
+
+## MCP Tools
+
+| Tool | Type | Description |
+|------|------|-------------|
+| scraper_refresh | MUTATING | Refresh grades across all platforms |
+| scraper_matrix | READ_ONLY | Coverage matrix: repos × platforms with grades |
+| scraper_repo | READ_ONLY | Single-repo grade detail + history |
+| scraper_reassess | MUTATING | Request rescoring on platforms |
+| scraper_improve_suggest | MUTATING | LLM-powered code fix suggestions |
+| scraper_improvement_plan | READ_ONLY | Prioritized fix list from ToolBench findings |
+| scraper_status | READ_ONLY | Server health, last refresh, platform status |
+| scraper_help | READ_ONLY | Multi-level help |
+| scraper_platforms | READ_ONLY | List/info grade platforms |
+| toolbench_guide | READ_ONLY | ToolBench context, links, rescoring steps |
+
+## REST Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| /health | GET | Liveness probe |
+| /api/capabilities | GET | Server capabilities |
+| /api/tools | GET | Registered MCP tools |
+| /api/apps | GET | Fleet apps hub |
+| /api/status | GET | Server status, uptime, grade counts |
+| /api/coverage | GET | Coverage matrix for fleet repos |
+| /api/coverage/{repo} | GET | Single-repo grade detail |
+| /api/trends | GET | Grade direction (+/-/=) per repo per platform |
+| /api/refresh | POST | Trigger grade refresh |
+| /api/export | GET | Export all grades as JSON |
+| /api/badge.svg | GET | SVG score badge for a repo |
+| /api/llm/providers | GET | Local LLM (Ollama) detection |
+| /api/llm/chat | POST | Chat with local LLM |
+| /api/meta/tools | GET | MCP tool metadata |
+| /api/meta/local-llm | GET | Local LLM probe (Ollama + LM Studio) |
+| /api/logs | GET | Activity logs |
+| /api/scraper/{action} | GET/POST | ToolBench Playwright archiver |
+
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| SCRAPER_MCP_HOST | 127.0.0.1 | Bind address |
+| SCRAPER_MCP_PORT | 10998 | Backend port |
+| SCRAPER_MCP_WEBAPP_PORT | 10999 | Frontend port |
+| LLM_GATEWAY_URL | http://127.0.0.1:10916 | LLM gateway for AI suggestions |
+| LLM_GATEWAY_PROVIDER | — | Gateway provider |
+| LLM_GATEWAY_MODEL | — | Gateway model |
+| AIWATCHER_URL | http://127.0.0.1:10946 | AI watcher for grade drop alerts |
+| SCRAPER_ALERT_THRESHOLD | B | Alert threshold grade |
+
+## Architecture
+
+```
+webapp (Vite React, :10999)
+  └── /api/* ──► backend (FastAPI + FastMCP, :10998)
+                    ├── /mcp ──► FastMCP Streamable HTTP
+                    ├── /api/coverage ──► analytics.get_coverage_matrix()
+                    ├── /api/refresh ──► scrapers.engine.refresh_all()
+                    └── /api/scraper ──► Playwright ToolBench archiver
+
+platforms/
+  toolbench.arcade.dev  — scraper using httpx + HTML parsing
+  glama.ai              — scraper using httpx + HTML parsing
+  lobehub.com           — scraper using httpx + JSON API
+```
+
+## Data
+- SQLite at `data/scraper_mcp/grades.db`
+- Tables: grades (current), grade_history (deltas)

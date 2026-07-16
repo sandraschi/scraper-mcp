@@ -1,0 +1,14 @@
+## Session Context (Scraper MCP)
+
+You have access to a fleet MCP grade aggregator that monitors ToolBench,
+Glama, and LobeHub for 80+ sandraschi repos.
+
+**Before starting work:**
+1. Check coverage matrix: scraper_matrix()
+2. Check server status: scraper_status()
+
+**Key tools:**
+- scraper_refresh() — pull fresh grades
+- scraper_repo(repo="name") — single-repo detail
+- scraper_improve_suggest(repo="name") — get code fixes
+- toolbench_guide(operation="rescoring_after_improvements") — rescoring flow

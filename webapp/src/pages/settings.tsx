@@ -19,7 +19,7 @@ export default function SettingsPage() {
   }, []);
 
   return (
-    <div className="max-w-2xl space-y-4">
+    <div data-testid="settings" className="max-w-2xl space-y-4">
       <h2 className="text-lg font-semibold text-slate-100">Settings</h2>
 
       <section className="glass-panel p-4">

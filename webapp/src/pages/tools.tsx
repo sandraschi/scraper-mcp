@@ -129,7 +129,7 @@ export default function ToolsPage() {
   }
 
   return (
-    <div>
+    <div data-testid="tools">
       <h1 style={{ fontSize: "1.5rem", marginTop: 0 }}>MCP Inspector</h1>
       <p style={{ color: "var(--muted)" }}>
         MCP tools + ToolBench Playwright page archiver. Coverage matrix is on{" "}
@@ -148,7 +148,7 @@ export default function ToolsPage() {
           </thead>
           <tbody>
             {metaTools.map((t) => (
-              <tr key={t.name} style={{ borderBottom: "1px solid var(--border)" }}>
+              <tr key={t.name} data-testid={`tool-name-${t.name}`} style={{ borderBottom: "1px solid var(--border)" }}>
                 <td style={{ padding: "0.45rem", fontFamily: "monospace" }}>{t.name}</td>
                 <td style={{ padding: "0.45rem" }}>{t.risk ?? "—"}</td>
                 <td style={{ padding: "0.45rem" }}>{(t.operations ?? []).join(", ") || "—"}</td>
