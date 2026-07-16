@@ -22,7 +22,7 @@ uv sync
 | Tool | Type | Description |
 |------|------|-------------|
 | scraper_refresh | MUTATING | Refresh grades across all platforms |
-| scraper_matrix | READ_ONLY | Coverage matrix: repos × platforms with grades |
+| scraper_matrix | READ_ONLY | Coverage matrix: repos x platforms with grades |
 | scraper_repo | READ_ONLY | Single-repo grade detail + history |
 | scraper_reassess | MUTATING | Request rescoring on platforms |
 | scraper_improve_suggest | MUTATING | LLM-powered code fix suggestions |
@@ -30,7 +30,10 @@ uv sync
 | scraper_status | READ_ONLY | Server health, last refresh, platform status |
 | scraper_help | READ_ONLY | Multi-level help |
 | scraper_platforms | READ_ONLY | List/info grade platforms |
+| scraper_shutdown | DESTRUCTIVE | Graceful server shutdown |
 | toolbench_guide | READ_ONLY | ToolBench context, links, rescoring steps |
+| show_matrix_card | READ_ONLY | Prefab card: coverage matrix |
+| show_status_card | READ_ONLY | Prefab card: platform health |
 
 ## REST Endpoints
 
@@ -53,6 +56,8 @@ uv sync
 | /api/meta/local-llm | GET | Local LLM probe (Ollama + LM Studio) |
 | /api/logs | GET | Activity logs |
 | /api/scraper/{action} | GET/POST | ToolBench Playwright archiver |
+| /api/skills | GET | List available skills |
+| /api/skills/{name} | GET | Get skill SKILL.md content |
 
 ## Environment Variables
 

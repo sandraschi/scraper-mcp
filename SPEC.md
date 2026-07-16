@@ -6,7 +6,7 @@
 
 | Component | Technology | Port |
 |---|---|---|
-| Backend | FastMCP 3.2 + Starlette | 10998 |
+| Backend | FastMCP 3.2 + FastAPI | 10998 |
 | Frontend | Vite 5 + React 18 + Tailwind 3 | 10999 |
 | Analytics | SQLite (grades + history) | local file |
 | Scrapers | httpx-based HTTP + JSON parsers | N/A |
@@ -16,10 +16,17 @@
 | Tool | Type | Description |
 |---|---|---|
 | `scraper_refresh` | MUTATING | Scan all platforms, persist grades |
-| `scraper_matrix` | READ_ONLY | Coverage matrix: repos × platforms |
+| `scraper_matrix` | READ_ONLY | Coverage matrix: repos x platforms |
 | `scraper_repo` | READ_ONLY | Single-repo grade detail + history |
 | `scraper_reassess` | MUTATING | Request rescoring on platforms |
+| `scraper_improve_suggest` | MUTATING | LLM-powered code fix suggestions |
+| `scraper_improvement_plan` | READ_ONLY | Prioritized fix list from ToolBench findings |
+| `scraper_status` | READ_ONLY | Server health, last refresh, platform status |
+| `scraper_help` | READ_ONLY | Multi-level help |
 | `scraper_platforms` | READ_ONLY | List available grading platforms |
+| `scraper_shutdown` | DESTRUCTIVE | Graceful server shutdown |
+| `show_matrix_card` | READ_ONLY | Prefab card: coverage matrix |
+| `show_status_card` | READ_ONLY | Prefab card: platform health |
 
 ## Architecture
 
@@ -58,5 +65,5 @@ class BaseScraper:
 - [x] Trend API (`GET /api/trends`) with grade direction tracking
 - [ ] NVIDIA-AI co new scraping agent via `@mcp.tool(sampling=True)` for AG2.0 spec-awareness
 - [ ] Clickhouse-scorer modularity: independent grader quality scoring via separate service
-- [ ] Tauri 2.0 native wrapper (system tray grade monitor)
+- [x] Tauri 2.0 native wrapper (system tray grade monitor)
 - [ ] Trend chart in webapp dashboard (frontend for `/api/trends`)
