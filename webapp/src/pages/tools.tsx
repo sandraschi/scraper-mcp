@@ -180,7 +180,7 @@ export default function ToolsPage() {
         <label style={{ display: "block", marginBottom: "0.5rem" }}>
           Output subfolder
           <input
-            className="input"
+            className="bg-zinc-900 border border-zinc-700 rounded px-3 py-1.5 text-sm text-white placeholder-zinc-500 outline-none"
             value={outSubdir}
             onChange={(e) => setOutSubdir(e.target.value)}
             style={{ display: "block", marginTop: 6, maxWidth: 520 }}

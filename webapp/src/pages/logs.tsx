@@ -83,7 +83,7 @@ export default function LogsPage() {
       <div className="glass-panel" style={{ padding: "1rem", marginBottom: "1rem", display: "flex", gap: 12, flexWrap: "wrap" }}>
         <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
           Level
-          <select className="input" value={level} onChange={(e) => setLevel(e.target.value)} style={{ maxWidth: 140 }}>
+          <select className="bg-zinc-900 border border-zinc-700 rounded px-3 py-1.5 text-sm text-white placeholder-zinc-500 outline-none" value={level} onChange={(e) => setLevel(e.target.value)} style={{ maxWidth: 140 }}>
             <option value="">All</option>
             <option value="DEBUG">DEBUG</option>
             <option value="INFO">INFO</option>
@@ -92,7 +92,7 @@ export default function LogsPage() {
           </select>
         </label>
         <input
-          className="input"
+          className="bg-zinc-900 border border-zinc-700 rounded px-3 py-1.5 text-sm text-white placeholder-zinc-500 outline-none"
           placeholder="Search detail / meta"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
