@@ -9,9 +9,9 @@ description = "FastMCP 3.2: Fleet grade aggregator (ToolBench, Glama, LobeHub) +
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
-authors = [{ name = "Sandra Schieder" }]
+authors = [{ name = "Sandra Schipal" }]
 dependencies = [
-    "fastmcp>=3.4.2,<4",
+    "fastmcp>=3.4.4,<4",
     "fastapi>=0.115",
     "httpx>=0.28",
     "pydantic>=2.0",
@@ -26,7 +26,7 @@ dependencies = [
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.24",
-    "ruff>=0.8",
+    "ruff>=0.16.0,<0.17",
 ]
 scraper = ["playwright>=1.49.0"]
 

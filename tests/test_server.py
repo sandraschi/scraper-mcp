@@ -6,12 +6,14 @@ import pytest
 def test_server_import():
     """Server module imports without error."""
     from scraper_mcp.server import build_app
+
     assert build_app is not None
 
 
 def test_config():
     """Config loads with correct ports."""
     from scraper_mcp.config import settings
+
     assert settings.port == 10998
     assert settings.webapp_port == 10999
     assert settings.transport == "http"
@@ -20,6 +22,7 @@ def test_config():
 def test_scrapers_registry():
     """All 3 scrapers are registered."""
     from scraper_mcp.scrapers.engine import SCRAPERS
+
     assert "toolbench" in SCRAPERS
     assert "glama" in SCRAPERS
     assert "lobehub" in SCRAPERS
@@ -62,6 +65,7 @@ def test_analytics_schema():
 def test_toolbench_scraper_metadata():
     """ToolBench scraper has correct metadata."""
     from scraper_mcp.scrapers.engine import ToolBenchScraper
+
     s = ToolBenchScraper()
     assert s.id == "toolbench"
     assert "Arcade" in s.name

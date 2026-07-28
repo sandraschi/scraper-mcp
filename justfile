@@ -1,3 +1,5 @@
+set windows-shell := ["powershell.exe", "-NoProfile", "-Command"]
+
 # scraper-mcp justfile
 import 'scripts/just/fleet.just'
 # scraper-mcp justfile
@@ -40,19 +42,11 @@ dev:
 certify: lint
     uv run pytest tests/ -q
 
-# Pack MCPB bundle
-mcpb-pack:
-    pwsh -NoProfile -File "{{justfile_directory()}}\scripts\mcpb-pack.ps1"
-
 # Build Tauri native desktop app (full pipeline: frontend + backend)
 build-native:
     Set-Location '{{justfile_directory()}}\native'
     $env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"
     npx @tauri-apps/cli build
-
-# Run the CUA smoke test against the installed NSIS app
-cua-nsis-test:
-    uv run python scripts/cua-smoke.py
 
 # Daily refresh: pull grades from all platforms and alert on drops
 daily-refresh:
@@ -60,4 +54,4 @@ daily-refresh:
 
 # Register daily refresh Windows scheduled task
 register-daily-refresh:
-    pwsh -NoProfile -File "{{justfile_directory()}}\scripts\register-daily-refresh.ps1"
+    powershell.exe -NoProfile -File "{{justfile_directory()}}\scripts\register-daily-refresh.ps1"
