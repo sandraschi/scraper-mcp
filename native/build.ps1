@@ -19,7 +19,7 @@ foreach ($f in @($apiFile) + $altFiles) {
             if ($apiPort -ne 10998) {
                 throw "API_BASE in $f points to port $apiPort but backend serves on 10998. Fix before building."
             }
-            Write-Host "  API_BASE port: $apiPort (matches backend) ✓" -ForegroundColor Green
+            Write-Host "  API_BASE port: $apiPort (matches backend) OK" -ForegroundColor Green
         }
         break
     }
