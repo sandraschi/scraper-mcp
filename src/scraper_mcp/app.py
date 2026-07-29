@@ -344,15 +344,15 @@ def build_app() -> FastAPI:
             return {"success": False, "message": f"{repo}: not found on ToolBench"}
 
         issues = detail.get("top_issues", [])
-        repo_path = Path(__file__).resolve().parent.parent.parent.parent / repo
+        repo_path = Path(r"D:\Dev\repos") / repo
 
         results = {}
         if "description" in fix_types:
-            results["description"] = await fix_docstrings(repo_path, issues)
+            results["description"] = await fix_docstrings(repo_path)
         if "range" in fix_types:
-            results["range"] = await fix_range_constraints(repo_path, issues)
+            results["range"] = await fix_range_constraints(repo_path)
 
-        total = sum(r.get("short_docstrings_found", 0) + r.get("unconstrained_found", 0) for r in results.values())
+        total = sum(r.get("short_tool_docstrings", 0) + r.get("unconstrained_params", 0) for r in results.values())
         return {
             "success": True,
             "message": f"Scanned {repo}: {total} fix opportunities",
