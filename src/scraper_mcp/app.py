@@ -323,6 +323,44 @@ def build_app() -> FastAPI:
 
         return Response(content=svg, media_type="image/svg+xml")
 
+    @app.post("/api/scraper/fix/{repo}")
+    async def api_fix_repo(
+        repo: str,
+        body: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Apply safe mechanical fixes based on ToolBench criticism.
+
+        Scans the repo's source files and applies docstring expansion and
+        range-constraint fixes. Returns what was found/applied.
+        """
+        from scraper_mcp.mcp.tools.autofix import fix_docstrings, fix_range_constraints
+        from scraper_mcp.scrapers.toolbench_score import fetch_grade_with_details
+
+        payload = body or {}
+        fix_types = payload.get("fix_types", ["description", "range"])
+
+        detail = await fetch_grade_with_details("sandraschi", repo)
+        if not detail:
+            return {"success": False, "message": f"{repo}: not found on ToolBench"}
+
+        issues = detail.get("top_issues", [])
+        repo_path = Path(__file__).resolve().parent.parent.parent.parent / repo
+
+        results = {}
+        if "description" in fix_types:
+            results["description"] = await fix_docstrings(repo_path, issues)
+        if "range" in fix_types:
+            results["range"] = await fix_range_constraints(repo_path, issues)
+
+        total = sum(r.get("short_docstrings_found", 0) + r.get("unconstrained_found", 0) for r in results.values())
+        return {
+            "success": True,
+            "message": f"Scanned {repo}: {total} fix opportunities",
+            "repo": repo,
+            "fixes": results,
+            "issues": issues[:5],
+        }
+
     @app.get("/api/export")
     async def api_export(owner: str = "sandraschi"):
         """Export all grades as JSON for CI pipelines."""

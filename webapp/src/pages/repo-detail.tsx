@@ -184,7 +184,32 @@ export default function RepoDetail() {
                 {/* Header */}
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-semibold text-slate-200">{PLATFORM_NAMES[pid] || pid}</h3>
-                  <GradeTag grade={info.grade} score={info.score} />
+                  <div className="flex items-center gap-2">
+                    <GradeTag grade={info.grade} score={info.score} />
+                    {pid === "toolbench" && info.url && (
+                      <button
+                        data-testid="toolbench-fix-btn"
+                        onClick={async () => {
+                          const btn = document.activeElement as HTMLButtonElement;
+                          btn.disabled = true;
+                          btn.textContent = "...";
+                          try {
+                            const r = await fetch(API_BASE + "/api/scraper/fix/" + encodeURIComponent(repoName || ""), { method: "POST" });
+                            const j = await r.json();
+                            alert("Fix scan: " + j.message);
+                          } catch {
+                            alert("Fix scan failed");
+                          }
+                          btn.disabled = false;
+                          btn.textContent = "Fix w/ AI";
+                        }}
+                        className="text-[10px] px-2 py-1 rounded bg-amber-600/20 text-amber-400 hover:bg-amber-600/30 border border-amber-700/30 transition-colors disabled:opacity-50"
+                        title="Auto-fix based on ToolBench criticism"
+                      >
+                        Fix w/ AI
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Metadata */}
