@@ -328,16 +328,17 @@ def build_app() -> FastAPI:
         repo: str,
         body: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Apply safe mechanical fixes based on ToolBench criticism.
-
-        Scans the repo's source files and applies docstring expansion and
-        range-constraint fixes. Returns what was found/applied.
-        """
-        from scraper_mcp.mcp.tools.autofix import fix_docstrings, fix_range_constraints
+        """Apply safe mechanical fixes based on ToolBench criticism."""
+        from scraper_mcp.mcp.tools.autofix import (
+            apply_range_constraints,
+            fix_docstrings,
+            fix_range_constraints,
+        )
         from scraper_mcp.scrapers.toolbench_score import fetch_grade_with_details
 
         payload = body or {}
         fix_types = payload.get("fix_types", ["description", "range"])
+        do_apply = payload.get("apply", False)
 
         detail = await fetch_grade_with_details("sandraschi", repo)
         if not detail:
@@ -350,15 +351,21 @@ def build_app() -> FastAPI:
         if "description" in fix_types:
             results["description"] = await fix_docstrings(repo_path)
         if "range" in fix_types:
-            results["range"] = await fix_range_constraints(repo_path)
+            if do_apply:
+                results["range"] = await apply_range_constraints(repo_path)
+            else:
+                results["range"] = await fix_range_constraints(repo_path)
 
-        total = sum(r.get("short_tool_docstrings", 0) + r.get("unconstrained_params", 0) for r in results.values())
+        total = sum(
+            r.get("short_tool_docstrings", 0) + r.get("unconstrained_params", 0) + r.get("applied", 0)
+            for r in results.values()
+        )
         return {
             "success": True,
-            "message": f"Scanned {repo}: {total} fix opportunities",
-            "repo": repo,
+            "message": f"{'Applied' if do_apply else 'Scanned'} {repo}: {total} fix opportunities",
             "fixes": results,
             "issues": issues[:5],
+            "applied": do_apply,
         }
 
     @app.get("/api/export")

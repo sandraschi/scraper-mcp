@@ -7,22 +7,40 @@ export default function FixPage() {
     const [repo, setRepo] = useState(urlRepo || "");
     const [result, setResult] = useState<Record<string, any> | null>(null);
     const [loading, setLoading] = useState(false);
+    const [applying, setApplying] = useState(false);
     const [error, setError] = useState("");
 
-    async function runScan(r?: string) {
-        const target = r || repo;
-        if (!target) return;
+    async function runScan() {
+        if (!repo) return;
         setLoading(true);
         setError("");
         setResult(null);
         try {
-            const res = await fetch(API_BASE + "/api/scraper/fix/" + encodeURIComponent(target), { method: "POST" });
+            const res = await fetch(API_BASE + "/api/scraper/fix/" + encodeURIComponent(repo), { method: "POST" });
             const j = await res.json();
             setResult(j);
         } catch (e) {
             setError(e instanceof Error ? e.message : String(e));
         }
         setLoading(false);
+    }
+
+    async function runApply() {
+        if (!repo) return;
+        setApplying(true);
+        setError("");
+        try {
+            const res = await fetch(API_BASE + "/api/scraper/fix/" + encodeURIComponent(repo), {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ apply: true }),
+            });
+            const j = await res.json();
+            setResult(j);
+        } catch (e) {
+            setError(e instanceof Error ? e.message : String(e));
+        }
+        setApplying(false);
     }
 
     return (
@@ -52,14 +70,26 @@ export default function FixPage() {
             {result && (
                 <div className="space-y-3">
                     <div className="bg-slate-900 border border-slate-800 rounded-lg p-3">
-                        <p className="text-sm text-slate-300">{result.message}</p>
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm text-slate-300">{result.message}</p>
+                            {!result.applied && result.fixes?.range?.unconstrained_params > 0 && (
+                                <button
+                                    data-testid="apply-fix-btn"
+                                    onClick={runApply}
+                                    disabled={applying}
+                                    className="px-4 py-1.5 bg-emerald-600 text-white rounded text-sm hover:bg-emerald-500 disabled:opacity-50"
+                                >
+                                    {applying ? "Applying..." : "Apply Range Fixes"}
+                                </button>
+                            )}
+                        </div>
                     </div>
 
-                    {result.issues_used?.length > 0 && (
+                    {result.issues?.length > 0 && (
                         <div className="bg-slate-900 border border-slate-800 rounded-lg p-3">
                             <h2 className="text-sm font-semibold text-slate-300 mb-2">ToolBench Issues</h2>
                             <ul className="space-y-1">
-                                {result.issues_used.map((issue: string, i: number) => (
+                                {result.issues.map((issue: string, i: number) => (
                                     <li key={i} className="text-xs text-slate-400 leading-relaxed">{issue}</li>
                                 ))}
                             </ul>

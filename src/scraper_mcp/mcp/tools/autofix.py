@@ -8,6 +8,9 @@ Each fix is scoped to be safe - docstring changes only, no behavioral changes.
 """
 
 import ast
+import re
+import shutil
+from datetime import datetime
 from pathlib import Path
 from typing import Annotated
 
@@ -58,7 +61,6 @@ def _short_docstring_fix(filepath: Path) -> list[dict]:
             tree = ast.parse(f.read())
         except SyntaxError:
             return fixes
-
     for node in ast.walk(tree):
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
@@ -77,17 +79,15 @@ def _short_docstring_fix(filepath: Path) -> list[dict]:
     return fixes
 
 
-def _add_range_constraints(filepath: Path) -> list[dict]:
-    """Tool function params with implied ranges but no Field(ge=/le=)."""
+def _scan_range_params(filepath: Path) -> list[dict]:
+    """Find tool function params with implied ranges but no Field(ge=/le=)."""
     fixes: list[dict] = []
     source = filepath.read_text(encoding="utf-8").splitlines()
-
     with open(filepath, encoding="utf-8") as f:
         try:
             tree = ast.parse(f.read())
         except SyntaxError:
             return fixes
-
     for node in ast.walk(tree):
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
@@ -110,6 +110,19 @@ def _add_range_constraints(filepath: Path) -> list[dict]:
     return fixes
 
 
+def _apply_range_param(filepath: Path, param_name: str) -> bool:
+    """Add Field(ge=, le=) to one param. Returns True if changed."""
+    lo, hi = _RANGE_PARAMS[param_name]
+    content = filepath.read_text(encoding="utf-8")
+    old = rf"({param_name})\s*:\s*int(\s*=)"
+    new = rf"\1: Annotated[int, Field(ge={lo}, le={hi})]\2"
+    updated, count = re.subn(old, new, content)
+    if count:
+        filepath.write_text(updated, encoding="utf-8")
+        return True
+    return False
+
+
 async def fix_docstrings(repo_path: Path) -> dict:
     results = {"files_scanned": 0, "short_tool_docstrings": 0, "details": []}
     for pyf in _list_py_files(repo_path):
@@ -129,12 +142,36 @@ async def fix_range_constraints(repo_path: Path) -> dict:
     for pyf in _list_py_files(repo_path):
         results["files_scanned"] += 1
         try:
-            items = _add_range_constraints(pyf)
+            items = _scan_range_params(pyf)
             if items:
                 results["unconstrained_params"] += len(items)
                 results["details"].extend(items)
         except Exception:
             pass
+    return results
+
+
+async def apply_range_constraints(repo_path: Path) -> dict:
+    """Write Field(ge=/le=) into source files. Creates .bak backups."""
+    results = {"files_scanned": 0, "applied": 0, "files_changed": 0, "details": []}
+    for pyf in _list_py_files(repo_path):
+        results["files_scanned"] += 1
+        items = _scan_range_params(pyf)
+        if not items:
+            continue
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        bak = pyf.with_suffix(f".{ts}.bak")
+        shutil.copy2(str(pyf), str(bak))
+        changed = False
+        for item in items:
+            if _apply_range_param(pyf, item["parameter"]):
+                changed = True
+                results["applied"] += 1
+                results["details"].append(item)
+        if changed:
+            results["files_changed"] += 1
+        else:
+            bak.unlink(missing_ok=True)
     return results
 
 
@@ -145,14 +182,15 @@ async def scraper_fix_repo(
         list[str] | None,
         Field(description="Fix types: 'description', 'range'. Omit for all."),
     ] = None,
+    apply: Annotated[bool, Field(description="Apply changes (creates .bak backups).")] = False,
 ) -> dict:
-    """Read ToolBench criticism for a repo and report fix opportunities.
+    """Read ToolBench criticism, scan and optionally fix MCP tool code.
 
-    Scans the repo's MCP tool functions for short docstrings
-    and missing Field(ge=/le=) constraints on numeric parameters.
+    Set apply=true to write Field(ge=, le=) constraints into source files.
+    Creates .bak backups. Run without apply to preview changes.
 
     ## Return Format
-    {"success": bool, "message": str, "fixes": {...}, "issues_used": [...]}
+    {"success": bool, "message": str, "fixes": {...}, "issues": [...]}
     """
     repo_path = _get_repo_path(repo)
     if not repo_path:
@@ -171,12 +209,19 @@ async def scraper_fix_repo(
     if "description" in active:
         results["description"] = await fix_docstrings(repo_path)
     if "range" in active:
-        results["range"] = await fix_range_constraints(repo_path)
+        if apply:
+            results["range"] = await apply_range_constraints(repo_path)
+        else:
+            results["range"] = await fix_range_constraints(repo_path)
 
-    total = sum(r.get("short_tool_docstrings", 0) + r.get("unconstrained_params", 0) for r in results.values())
+    total = sum(
+        r.get("short_tool_docstrings", 0) + r.get("unconstrained_params", 0) + r.get("applied", 0)
+        for r in results.values()
+    )
     return {
         "success": True,
-        "message": f"Scanned {repo}: {total} fix opportunities",
+        "message": f"{'Applied' if apply else 'Scanned'} {repo}: {total} fix opportunities",
         "fixes": results,
-        "issues_used": issues[:5],
+        "issues": issues[:5],
+        "applied": apply,
     }
