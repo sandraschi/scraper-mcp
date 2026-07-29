@@ -330,6 +330,7 @@ def build_app() -> FastAPI:
     ) -> dict[str, Any]:
         """Apply safe mechanical fixes based on ToolBench criticism."""
         from scraper_mcp.mcp.tools.autofix import (
+            apply_docstring_expansions,
             apply_range_constraints,
             fix_docstrings,
             fix_range_constraints,
@@ -349,7 +350,10 @@ def build_app() -> FastAPI:
 
         results = {}
         if "description" in fix_types:
-            results["description"] = await fix_docstrings(repo_path)
+            if do_apply:
+                results["description"] = await apply_docstring_expansions(repo_path)
+            else:
+                results["description"] = await fix_docstrings(repo_path)
         if "range" in fix_types:
             if do_apply:
                 results["range"] = await apply_range_constraints(repo_path)
@@ -357,7 +361,10 @@ def build_app() -> FastAPI:
                 results["range"] = await fix_range_constraints(repo_path)
 
         total = sum(
-            r.get("short_tool_docstrings", 0) + r.get("unconstrained_params", 0) + r.get("applied", 0)
+            r.get("short_tool_docstrings", 0)
+            + r.get("unconstrained_params", 0)
+            + r.get("applied", 0)
+            + r.get("expanded", 0)
             for r in results.values()
         )
         return {

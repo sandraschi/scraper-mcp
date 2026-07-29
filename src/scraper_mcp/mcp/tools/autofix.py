@@ -175,6 +175,127 @@ async def apply_range_constraints(repo_path: Path) -> dict:
     return results
 
 
+async def _call_llm(prompt: str, base_url: str = "http://localhost:11434") -> str:
+    """Call the local Ollama LLM with a prompt. Returns the response text."""
+    import httpx
+
+    try:
+        async with httpx.AsyncClient(timeout=60) as client:
+            r = await client.post(
+                f"{base_url}/api/generate",
+                json={"model": "qwen2.5:7b", "prompt": prompt, "stream": False},
+            )
+        data = r.json()
+        return data.get("response", "").strip()
+    except Exception as e:
+        return f"[LLM error: {e}]"
+
+
+_DOCSTRING_PROMPT = """You are a technical writer for MCP tool documentation.
+Given the source code of a Python function that is registered as an MCP tool,
+write a concise 1-2 sentence description of what it does.
+
+The description MUST:
+- Start with a verb ("List", "Search", "Create", "Delete", etc.)
+- Mention what the tool returns
+- Be under 120 characters
+- Be a plain string (no markdown, no code blocks)
+
+Current docstring: "{current}"
+Function name: {func_name}
+
+Function code:
+```python
+{code}
+```
+
+Write only the new docstring text, nothing else:"""
+
+
+def _extract_function_source(filepath: Path, func_name: str) -> str:
+    """Extract the full source of a function by name."""
+    with open(filepath, encoding="utf-8") as f:
+        content = f.read()
+    try:
+        tree = ast.parse(content)
+    except SyntaxError:
+        return ""
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == func_name:
+            lines = content.splitlines()
+            end = node.end_lineno or node.lineno + 10
+            return "\n".join(lines[node.lineno - 1 : end])
+    return ""
+
+
+def _rewrite_docstring_in_file(filepath: Path, func_name: str, new_doc: str) -> bool:
+    """Replace the docstring of a named function in a file."""
+    content = filepath.read_text(encoding="utf-8")
+    try:
+        tree = ast.parse(content)
+    except SyntaxError:
+        return False
+
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == func_name:
+            doc = ast.get_docstring(node)
+            if doc is None:
+                return False
+            old = f'"""{doc}"""'
+            new = f'"""{new_doc}"""'
+            if old in content:
+                content = content.replace(old, new, 1)
+                filepath.write_text(content, encoding="utf-8")
+                return True
+    return False
+
+
+async def apply_docstring_expansions(
+    repo_path: Path,
+    llm_base: str = "http://localhost:11434",
+) -> dict:
+    """Scan short tool docstrings, expand via LLM, write back. Creates .bak backups."""
+    results = {"files_scanned": 0, "expanded": 0, "failed": 0, "skipped": 0, "details": []}
+    for pyf in _list_py_files(repo_path):
+        results["files_scanned"] += 1
+        items = _short_docstring_fix(pyf)
+        if not items:
+            continue
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        bak = pyf.with_suffix(f".{ts}.bak")
+        shutil.copy2(str(pyf), str(bak))
+        any_change = False
+        for item in items:
+            fname = item["function"]
+            code = _extract_function_source(pyf, fname)
+            if not code:
+                results["skipped"] += 1
+                continue
+            prompt = _DOCSTRING_PROMPT.format(
+                current=item["current"],
+                func_name=fname,
+                code=code[:1500],
+            )
+            expanded = await _call_llm(prompt, llm_base)
+            if not expanded or expanded.startswith("[LLM error"):
+                results["failed"] += 1
+                continue
+            if _rewrite_docstring_in_file(pyf, fname, expanded):
+                results["expanded"] += 1
+                results["details"].append(
+                    {
+                        "function": fname,
+                        "file": str(pyf.relative_to(pyf.parent.parent.parent)),
+                        "before": item["current"],
+                        "after": expanded,
+                    }
+                )
+                any_change = True
+        if not any_change:
+            bak.unlink(missing_ok=True)
+    return results
+
+
 @mcp.tool(annotations={"readOnly": False, "destructive": False})
 async def scraper_fix_repo(
     repo: Annotated[str, Field(description="Repo name (e.g. blender-mcp)")],
@@ -186,8 +307,12 @@ async def scraper_fix_repo(
 ) -> dict:
     """Read ToolBench criticism, scan and optionally fix MCP tool code.
 
-    Set apply=true to write Field(ge=, le=) constraints into source files.
-    Creates .bak backups. Run without apply to preview changes.
+    Description scan: finds MCP tool functions with docstrings under 60 chars.
+    Range scan: finds int params (timeout, limit, etc.) without Field(ge=, le=).
+
+    When apply=true:
+    - Range fixes: writes Field(ge=, le=) constraints, creates .bak backups.
+    - Description fixes: calls local LLM (Ollama) to expand short docstrings.
 
     ## Return Format
     {"success": bool, "message": str, "fixes": {...}, "issues": [...]}
@@ -207,7 +332,10 @@ async def scraper_fix_repo(
     active = set(fix_types or ["description", "range"])
     results = {}
     if "description" in active:
-        results["description"] = await fix_docstrings(repo_path)
+        if apply:
+            results["description"] = await apply_docstring_expansions(repo_path)
+        else:
+            results["description"] = await fix_docstrings(repo_path)
     if "range" in active:
         if apply:
             results["range"] = await apply_range_constraints(repo_path)
@@ -215,7 +343,10 @@ async def scraper_fix_repo(
             results["range"] = await fix_range_constraints(repo_path)
 
     total = sum(
-        r.get("short_tool_docstrings", 0) + r.get("unconstrained_params", 0) + r.get("applied", 0)
+        r.get("short_tool_docstrings", 0)
+        + r.get("unconstrained_params", 0)
+        + r.get("applied", 0)
+        + r.get("expanded", 0)
         for r in results.values()
     )
     return {
