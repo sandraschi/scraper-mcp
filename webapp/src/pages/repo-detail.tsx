@@ -7,7 +7,7 @@ interface ToolDetail {
   name: string;
   grade?: string;
   score?: number;
-  risk_score?: number;
+  tool_score?: number;
   purpose?: number;
   usage_guidelines?: number;
   behavior?: number;
@@ -233,20 +233,20 @@ export default function RepoDetail() {
                   </div>
                 )}
 
-                {/* ToolBench: per-tool risk */}
-                {raw?.tool_details && pid === "toolbench" && raw.tool_details.some((t) => t.risk_score) && (
+                {/* ToolBench: per-tool scores */}
+                {raw?.tool_details && pid === "toolbench" && raw.tool_details.some((t) => t.tool_score) && (
                   <div className="mb-3">
                     <h4 className="text-xs text-slate-500 font-medium mb-1.5 flex items-center gap-1">
-                      <AlertTriangle size={11} /> Per-Tool Risk Scores (higher = worse)
+                      <AlertTriangle size={11} /> Per-Tool Scores (lower = needs attention)
                     </h4>
                     <div className="flex flex-wrap gap-1.5">
-                      {(raw.tool_details || []).sort((a, b) => (b.risk_score || 0) - (a.risk_score || 0)).slice(0, 10).map((t) => (
+                      {(raw.tool_details || []).sort((a, b) => (a.tool_score || 0) - (b.tool_score || 0)).slice(0, 10).map((t) => (
                         <span key={t.name} title={t.name} className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
-                          (t.risk_score || 0) >= 70 ? "bg-red-900/50 text-red-300" :
-                          (t.risk_score || 0) >= 40 ? "bg-amber-900/50 text-amber-300" :
+                          (t.tool_score || 0) < 50 ? "bg-red-900/50 text-red-300" :
+                          (t.tool_score || 0) < 70 ? "bg-amber-900/50 text-amber-300" :
                           "bg-slate-700 text-slate-400"
                         }`}>
-                          {t.name}:{t.risk_score}
+                          {t.name}:{t.tool_score}
                         </span>
                       ))}
                     </div>
