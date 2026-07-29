@@ -148,101 +148,166 @@ def test_html_fixture_contains_grade_letters():
 
 
 # ===========================================================================
-# A.5 — _match_server
+# A.5 — _find_candidates (replaces _match_server)
 # ===========================================================================
 
 
-def test_match_server_exact_name():
-    from scraper_mcp.scrapers.toolbench_score import _match_server
+def test_find_candidates_exact_name():
+    from scraper_mcp.scrapers.toolbench_score import _find_candidates
 
     servers = [{"name": "scraper-mcp", "id": "abc", "status": "SCORED"}]
-    result = _match_server(servers, "scraper-mcp")
-    assert result is not None
-    assert result["id"] == "abc"
+    result = _find_candidates(servers, "scraper-mcp")
+    assert len(result) == 1
+    assert result[0]["id"] == "abc"
 
 
-def test_match_server_prefers_scored():
-    from scraper_mcp.scrapers.toolbench_score import _match_server
+def test_find_candidates_prefers_scored():
+    from scraper_mcp.scrapers.toolbench_score import _find_candidates
 
     servers = [
         {"name": "scraper-mcp", "id": "unscored", "status": "UNSCORED"},
         {"name": "scraper-mcp", "id": "scored", "status": "SCORED"},
     ]
-    result = _match_server(servers, "scraper-mcp")
-    assert result is not None
-    assert result["id"] == "scored"
+    result = _find_candidates(servers, "scraper-mcp")
+    assert len(result) == 2
+    assert result[0]["id"] == "scored"
 
 
-def test_match_server_full_name_suffix():
-    from scraper_mcp.scrapers.toolbench_score import _match_server
-
-    servers = [
-        {
-            "name": "other-name",
-            "full_name": "sandraschi/scraper-mcp",
-            "id": "xyz",
-            "status": "SCORED",
-        }
-    ]
-    result = _match_server(servers, "scraper-mcp")
-    assert result is not None
-    assert result["id"] == "xyz"
-
-
-def test_match_server_slug():
-    from scraper_mcp.scrapers.toolbench_score import _match_server
-
-    servers = [{"name": "Other Display Name", "slug": "scraper-mcp", "id": "slugged", "status": "SCORED"}]
-    result = _match_server(servers, "scraper-mcp")
-    assert result is not None
-    assert result["id"] == "slugged"
-
-
-def test_match_server_no_match_returns_none():
-    from scraper_mcp.scrapers.toolbench_score import _match_server
+def test_find_candidates_no_match_returns_empty():
+    from scraper_mcp.scrapers.toolbench_score import _find_candidates
 
     servers = [{"name": "unrelated", "id": "nope"}]
-    assert _match_server(servers, "scraper-mcp") is None
+    assert _find_candidates(servers, "scraper-mcp") == []
 
 
-def test_match_server_case_insensitive():
-    from scraper_mcp.scrapers.toolbench_score import _match_server
+def test_find_candidates_case_insensitive():
+    from scraper_mcp.scrapers.toolbench_score import _find_candidates
 
     servers = [{"name": "SCRAPER-MCP", "id": "upper", "status": "SCORED"}]
-    result = _match_server(servers, "scraper-mcp")
-    assert result is not None
-    assert result["id"] == "upper"
+    result = _find_candidates(servers, "scraper-mcp")
+    assert len(result) == 1
+    assert result[0]["id"] == "upper"
 
 
-def test_match_server_empty_list():
-    from scraper_mcp.scrapers.toolbench_score import _match_server
+def test_find_candidates_empty_list():
+    from scraper_mcp.scrapers.toolbench_score import _find_candidates
 
-    assert _match_server([], "scraper-mcp") is None
+    assert _find_candidates([], "scraper-mcp") == []
 
 
-def test_match_server_real_fixture_finds_our_repo():
-    """Our scraper-mcp is correctly matched in the 12-result fixture."""
-    from scraper_mcp.scrapers.toolbench_score import _match_server
+def test_find_candidates_real_fixture_finds_our_repo():
+    """Our scraper-mcp is findable in the real fixture with 12 results."""
+    from scraper_mcp.scrapers.toolbench_score import _find_candidates
 
     data = _load_json_fixture()
     servers: list[dict] = data.get("servers", data.get("data", []))
     assert len(servers) >= 2, "fixture too small"
 
-    result = _match_server(servers, "scraper-mcp")
-    assert result is not None, "scraper-mcp not found in fixture"
-    assert result["name"] == "scraper-mcp"
-    assert result["status"] == "SCORED"
-    assert isinstance(result["id"], str) and result["id"]
-    assert "overallScore" in result
+    candidates = _find_candidates(servers, "scraper-mcp")
+    assert len(candidates) >= 2, "should find multiple scraper-mcp entries"
+    # First candidate should be SCORED with highest score
+    assert candidates[0]["status"] == "SCORED"
+    assert isinstance(candidates[0]["id"], str) and candidates[0]["id"]
 
 
-def test_match_server_real_fixture_unknown_misses():
-    """Unknown repo returns None gracefully."""
-    from scraper_mcp.scrapers.toolbench_score import _match_server
+def test_find_candidates_real_fixture_unknown_misses():
+    """Unknown repo returns empty list gracefully."""
+    from scraper_mcp.scrapers.toolbench_score import _find_candidates
 
     data = _load_json_fixture()
     servers: list[dict] = data.get("servers", data.get("data", []))
-    assert _match_server(servers, "no-such-repo-zzz") is None
+    assert _find_candidates(servers, "no-such-repo-zzz") == []
+
+
+# ===========================================================================
+# Owner verification
+# ===========================================================================
+
+
+def test_owner_from_soup_real_fixture():
+    """Extract GitHub owner from the fixture assessment page."""
+    from bs4 import BeautifulSoup
+
+    from scraper_mcp.scrapers.toolbench_score import _owner_from_soup
+
+    html = _load_html_fixture()
+    soup = BeautifulSoup(html, "lxml")
+    owner = _owner_from_soup(soup)
+    assert owner is not None, "should find owner in fixture"
+    assert owner.lower() == "aparajithn", f"expected aparajithn, got {owner}"
+
+
+def test_owner_from_soup_no_link():
+    from bs4 import BeautifulSoup
+
+    from scraper_mcp.scrapers.toolbench_score import _owner_from_soup
+
+    soup = BeautifulSoup("<html><body>no link here</body></html>", "lxml")
+    assert _owner_from_soup(soup) is None
+
+
+# ===========================================================================
+# Blocker 2 — dimension reconciliation
+# ===========================================================================
+
+
+def test_dimensions_reconcile_exact():
+    from scraper_mcp.scrapers.toolbench_score import _dimensions_reconcile
+
+    # Our fixture: DQ=79, Protocol=80, Support=38 → overall=67 (66.9 rounded)
+    assert _dimensions_reconcile(79, 80, 38, 67) is True
+
+
+def test_dimensions_reconcile_exact_calculation():
+    from scraper_mcp.scrapers.toolbench_score import _dimensions_reconcile
+
+    # 0.5*80 + 0.2*80 + 0.3*80 = 80
+    assert _dimensions_reconcile(80, 80, 80, 80) is True
+
+
+def test_dimensions_reconcile_mismatch():
+    from scraper_mcp.scrapers.toolbench_score import _dimensions_reconcile
+
+    # 0.5*72 + 0.2*72 + 0.3*72 = 72, not 62
+    assert _dimensions_reconcile(72, 72, 72, 62) is False
+
+
+def test_dimensions_reconcile_none_rejected():
+    from scraper_mcp.scrapers.toolbench_score import _dimensions_reconcile
+
+    assert _dimensions_reconcile(None, 80, 38, 67) is False
+    assert _dimensions_reconcile(79, None, 38, 67) is False
+    assert _dimensions_reconcile(79, 80, None, 67) is False
+    assert _dimensions_reconcile(79, 80, 38, None) is False
+
+
+def test_dimensions_reconcile_within_tolerance():
+    from scraper_mcp.scrapers.toolbench_score import _dimensions_reconcile
+
+    # 0.5*79 + 0.2*80 + 0.3*38 = 66.9, overall=67, diff=0.1 < tol=1.5
+    assert _dimensions_reconcile(79, 80, 38, 67) is True
+    # 0.5*78 + 0.2*80 + 0.3*39 = 66.7, overall=67, diff=0.3 < tol=1.5
+    assert _dimensions_reconcile(78, 80, 39, 67) is True
+
+
+# ===========================================================================
+# GAP 7 — tool_details schema
+# ===========================================================================
+
+
+def test_tool_details_uses_tool_score():
+    """GAP 7: tool_detail entries use 'tool_score', not 'risk_score'."""
+    from bs4 import BeautifulSoup
+
+    from scraper_mcp.scrapers.toolbench_score import _parse_assessment_data
+
+    html = _load_html_fixture()
+    soup = BeautifulSoup(html, "lxml")
+    result = _parse_assessment_data(soup, "https://example.com", "dummy-id")
+    assert "tool_details" in result
+    for tool in result["tool_details"]:
+        assert "tool_score" in tool, f"missing tool_score in {tool}"
+        assert "risk_score" not in tool, f"old key risk_score still present in {tool}"
 
 
 # ===========================================================================
@@ -305,16 +370,11 @@ async def test_scrape_assessment_does_not_set_grade():
 @pytest.mark.asyncio
 async def test_fetch_grade_with_details_uses_single_api_call():
     """A.4.2 gate: fetch_grade_with_details calls /api/servers exactly once."""
-    html = _load_html_fixture()
     api_json = _load_json_fixture()
 
     mock_api_resp = MagicMock()
     mock_api_resp.status_code = 200
     mock_api_resp.json = MagicMock(return_value=api_json)
-
-    mock_html_resp = MagicMock()
-    mock_html_resp.text = html
-    mock_html_resp.raise_for_status = MagicMock()
 
     mock_client = MagicMock()
     mock_client.__aenter__ = AsyncMock(return_value=mock_client)
@@ -325,11 +385,18 @@ async def test_fetch_grade_with_details_uses_single_api_call():
     async def _get(url, **kwargs):
         nonlocal get_call_count
         get_call_count += 1
-        if "/api/servers" in str(url):
-            return mock_api_resp
-        return mock_html_resp
+        return mock_api_resp
 
     mock_client.get = _get
+
+    # Pre-populate owner cache so no page fetch is needed
+    from scraper_mcp.scrapers.toolbench_score import _server_owner_cache
+
+    _server_owner_cache.clear()
+    servers = api_json.get("servers", api_json.get("data", []))
+    for s in servers:
+        if s.get("name", "").lower() == "scraper-mcp":
+            _server_owner_cache[s["id"]] = "test-owner"
 
     with patch("scraper_mcp.scrapers.toolbench_score.httpx.AsyncClient", return_value=mock_client):
         from scraper_mcp.scrapers.toolbench_score import fetch_grade_with_details
@@ -338,34 +405,37 @@ async def test_fetch_grade_with_details_uses_single_api_call():
         assert result is not None
         assert "grade" in result
         assert "score" in result
-        # Should make exactly 2 calls: 1 API + 1 HTML (NOT 2 API + 1 HTML)
-        assert get_call_count == 2, f"expected 2 HTTP calls, got {get_call_count}"
+        # Only 1 API call — no page fetch (owner was cached)
+        assert get_call_count == 1, f"expected 1 HTTP call, got {get_call_count}"
+        _server_owner_cache.clear()
 
 
 @pytest.mark.asyncio
 async def test_fetch_grade_with_details_prefers_api_grade():
     """A.2 gate: grade comes from API, not from HTML scraping."""
-    html = _load_html_fixture()
     api_json = _load_json_fixture()
 
     mock_api_resp = MagicMock()
     mock_api_resp.status_code = 200
     mock_api_resp.json = MagicMock(return_value=api_json)
 
-    mock_html_resp = MagicMock()
-    mock_html_resp.text = html
-    mock_html_resp.raise_for_status = MagicMock()
-
     mock_client = MagicMock()
     mock_client.__aenter__ = AsyncMock(return_value=mock_client)
     mock_client.__aexit__ = AsyncMock(return_value=None)
 
     async def _get(url, **kwargs):
-        if "/api/servers" in str(url):
-            return mock_api_resp
-        return mock_html_resp
+        return mock_api_resp
 
     mock_client.get = _get
+
+    # Pre-populate owner cache
+    from scraper_mcp.scrapers.toolbench_score import _server_owner_cache
+
+    _server_owner_cache.clear()
+    servers = api_json.get("servers", api_json.get("data", []))
+    for s in servers:
+        if s.get("name", "").lower() == "scraper-mcp":
+            _server_owner_cache[s["id"]] = "test-owner"
 
     with patch("scraper_mcp.scrapers.toolbench_score.httpx.AsyncClient", return_value=mock_client):
         from scraper_mcp.scrapers.toolbench_score import fetch_grade_with_details
@@ -373,7 +443,6 @@ async def test_fetch_grade_with_details_prefers_api_grade():
         result = await fetch_grade_with_details("test-owner", "scraper-mcp")
         assert result is not None
 
-        # Our fixture has grade=C, score=62. resolve_grade should return "C"
-        # from the API. It should NOT return "C" from the HTML page text.
         assert result["grade"] in ("A+", "A", "B", "C", "D", "F", "?"), f"bad grade: {result['grade']}"
         assert isinstance(result["score"], (int, float, type(None)))
+        _server_owner_cache.clear()

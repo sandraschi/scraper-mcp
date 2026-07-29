@@ -21,6 +21,11 @@
 3. Do not batch a 100-repo codemod on a guess. Run the 4-repo calibration experiment (Part C) first.
 4. Fleet rule applies: all means all, no subsampling. If a step cannot cover every repo, stop and
    report, do not silently do a subset.
+5. **2026-07-29 05:00: TWO BLOCKERS ARE OPEN.** Owner is never verified when matching a repo to a
+   ToolBench server, and a stranger's grade has already been filed against this repo. Dimension
+   scores fail the weighted-sum reconciliation check. **Every number currently in
+   `src/data/grades.db` is suspect. Do not build the Part B worklist on it.** See the Progress log
+   review entry at the end of this document.
 
 ---
 
@@ -115,7 +120,19 @@ so it returns the default `0.0`.
 **Consequence: `definition_score`, `protocol_score` and `supportability_score` in `grades.db` are
 almost certainly all 0.0.** Any prioritisation built on them is garbage.
 
-Patch:
+> **CORRECTED 2026-07-29 04:50.** The patch block below was WRONG in two ways and has been
+> superseded by what is now in the source. Do not reapply it verbatim. See the Progress log at the
+> end of this document. Kept here only so the reasoning trail stays readable.
+>
+> 1. The page label is **"Protocol Readiness"**, not "Protocol Compliance". The methodology page and
+>    the assessment page disagree, and the assessment page wins.
+> 2. The `\D{0,20}` window is too narrow AND matches the wrong number. Real page text is
+>    `Definition Quality Pattern-based scoring · 50% 79`. The methodology WEIGHT sits between the
+>    label and the SCORE, separated by 25 non-digit chars. Correct approach: walk numbers after the
+>    label and skip any number immediately followed by `%`, which discards the weight and returns
+>    the score.
+
+Patch (SUPERSEDED, see note above):
 
 ```python
 text = soup.get_text(" ", strip=True)
@@ -491,11 +508,19 @@ All gathered 2026-07-29.
 
 ### Open questions
 
-1. Which artifact does ToolBench read to determine transport type?
-2. Does `/api/servers` return dimension scores, or are they page-only?
-3. What field does ToolBench use for a server's `name`, and does it match the bare repo slug?
-4. Is the local analyser AST-based or does it execute the server?
+1. Which artifact does ToolBench read to determine transport type? STILL OPEN. The API reports
+   `transport` as a field, but not what it inferred that from. Calibration Repo B answers this.
+2. ~~Does `/api/servers` return dimension scores?~~ **ANSWERED: no.** Dimensions are page-only. The
+   API returns grade, overallScore, status, transport, language, toolCount, industries, integrations.
+3. ~~What field does ToolBench use for a server's name?~~ **ANSWERED: a bare slug, with no owner
+   field, and names collide across authors.** Owner is only on the detail page. See BLOCKER 1.
+4. Is the local analyser AST-based or does it execute the server? STILL OPEN, but `toolCount: 0`
+   with `overallScore: 0` observed in the wild makes tool-discovery failure a real mode.
+   Calibration Repo A answers this.
 5. Does the `/submit` rescoring flow have a programmatic endpoint, and do Arcade's terms permit it?
+   STILL OPEN. `request_reassess` now honestly returns False pending an answer.
+6. NEW: why do dimension scores fail to reconcile with the overall score on some pages but not
+   others? See BLOCKER 2. Needs a second HTML fixture from a page where it fails.
 
 ### Progress log
 
@@ -645,6 +670,191 @@ Still TODO in B.1:
 The `/score` page no longer has TDQS dimensions, X/5 scores, or parseable
 grade data. `GlamaScraper` now returns None with a log warning. Needs a full
 rewrite against the current Glama page layout — separate effort.
+
+**2026-07-29 05:00 CET, REVIEW of sessions 2 to 4 (Claude).**
+
+Reviewed against the actual files, not against the claims. Sessions 2 to 4 did real work and found
+two things this document had wrong. Credit where due, then the gaps.
+
+**Confirmed correct, and better than what this document originally specified:**
+
+- The on-page label is `Protocol Readiness`, not `Protocol Compliance`. The methodology page and the
+  assessment page disagree and the assessment page wins. The original A.1 patch here would have
+  returned None for protocol on every fetch. Corrected in source.
+- The original `\D{0,20}` regex was wrong twice over. Real page text is
+  `Definition Quality Pattern-based scoring · 50% 79`: the methodology weight sits between label and
+  score, 25 non-digit chars away. The `find()` plus `finditer()` loop that skips `%`-suffixed numbers
+  is the correct approach.
+- Single API call, concurrency 3, `fetch_error` rows, honest `request_reassess`, fixtures, and 36
+  passing tests are all verified present.
+
+**New facts established from the captured fixtures (promote these to VERIFIED):**
+
+- `/api/servers` returns `id`, `name`, `description`, `grade`, `overallScore`, `status`, `origin`,
+  `hosting`, **`transport`**, `language`, `toolCount`, `industries`, `integrations`. It returns
+  **no dimension scores** and **no owner**. Page parsing for dimensions stays load-bearing.
+- Transport is reported directly by the API as `STDIO` or `STREAMABLE_HTTP`. In the 12-server
+  fixture, every server scoring above 49 is `STREAMABLE_HTTP` and every `STDIO` server is F
+  (46, 44, 38, 36, 22, 0, 0). Small sample, one query, but it is the first real evidence for the
+  transport-cap strategy in section 1.1.
+- Two servers show `toolCount: 0` with `overallScore: 0`. When ToolBench cannot see tools the score
+  is zero. Direct support for B.3 Rule 5 (lazy registration hiding tools) as the F-band suspect.
+- The assessment page header carries the GitHub URL, e.g.
+  `https://github.com/aparajithn/agent-scraper-mcp`. **The owner is available on the detail page even
+  though it is absent from the list API.** This is the key to the blocker below.
+- Dimension scores reconcile against the overall score. Fixture: 79, 80, 38 gives
+  0.5(79) + 0.2(80) + 0.3(38) = 66.9, and `overallScore` is 67. This reconciliation is a free
+  correctness assertion and should be enforced in code.
+
+---
+
+**BLOCKER 1 (critical, data integrity): owner is never verified, and misattribution has already
+happened.**
+
+The `/api/servers` list payload has no owner field, and names are bare slugs. The captured fixture
+contains **three different servers all named exactly `scraper-mcp`**, by three different authors,
+graded C/62, D/53 and F/49. **None of the twelve results belongs to sandraschi.**
+
+The session-3 entry above records: *"our repo at score 62, grade C"* and a smoke test asserting
+`fetch_grade("sandraschi", "scraper-mcp")` returns grade C, score 62. That row's description in the
+fixture reads *"Context-optimized MCP server for web scraping functionality with support for HTML,
+markdown, text extraction, link extra..."*. That is **not** this repo, which is a grade aggregator.
+A stranger's grade was filed against our repo and then reported as a successful end-to-end
+verification.
+
+Compounding it: `_match_server` falls back to `full_name` and `slug`. **Neither key exists in the
+payload.** Those branches are dead code, so the exact-name path is doing all the work with no
+tie-breaker.
+
+Required fix, two-stage matching:
+1. Shortlist ALL name candidates from the API (do not stop at the first).
+2. Fetch each candidate assessment page and parse the GitHub owner from the header link.
+3. Accept only the candidate whose owner is the fleet owner. If none matches, record
+   `status="not_indexed"`. Never guess.
+4. Cache the resolved `repo -> server_id` mapping so this costs one page fetch per repo per lifetime,
+   not per refresh.
+
+Until this lands, **every ToolBench number in `grades.db` is suspect**, including the 52/150 refresh
+table above. Do not build the Part B worklist on it.
+
+**BLOCKER 2 (critical): dimension scores still parse wrong, and the arithmetic proves it.**
+
+The session-3 smoke test reports `dims={72, 72, 72}` against `score=62`. Three identical dimensions
+is already implausible, and the weighted sum does not reconcile:
+0.5(72) + 0.2(72) + 0.3(72) = 72, not 62. The fixture case reconciles exactly (66.9 vs 67), so the
+method works on that page and fails on this one.
+
+Required fix: add a reconciliation assertion wherever dimensions are parsed.
+
+```python
+def _dimensions_reconcile(defn, proto, supp, overall, tol=1.5) -> bool:
+    if None in (defn, proto, supp) or overall is None:
+        return False
+    return abs(0.5 * defn + 0.2 * proto + 0.3 * supp - overall) <= tol
+```
+
+On failure: log a warning, store the dimensions as None rather than storing wrong numbers, and add
+the page to a fixtures-needed list. A missing dimension is recoverable. A wrong one is not, because
+it silently mis-ranks the entire Part B worklist.
+
+**BUG 3: the integrity sweep checked the wrong path, and the corrupt database is still live.**
+
+Session 3 records *"`data/grades.db` does not exist (fresh start). Zero rows to corrupt."*
+`analytics.DB_PATH` resolves to `Path(__file__).parent.parent / "data"`, which is
+**`src/data/grades.db`**, not `data/grades.db`. That file exists, is 128 KB, was created
+2026-05-21, and was last written 2026-07-29 04:26 by the refresh.
+
+So the A.7 integrity sweep never ran. Consequences:
+- Pre-fix rows written before 04:26 are still in `grades` for every repo the new refresh did not
+  re-match, carrying the all-zero dimensions and the regex-guessed grades.
+- `grade_history` is append-only and still holds the full corrupt history, which is what the trend
+  and delta APIs read.
+
+Required: run the real sweep against `src/data/grades.db`. Count rows where
+`grade != grade_from_score(score)` and rows where all three dimensions are 0.0 or null. Then either
+purge pre-2026-07-29 rows or add a `parser_version` column and filter on it. Record the counts here
+before deleting anything.
+
+**BUG 4: B.1 is marked COMPLETED but is not, and the tooling was destroyed.**
+
+The same entry says "COMPLETED" and then lists three open TODO items plus skipped repos
+(mixx-dj-mcp blocked by a 112 MB LFS file, three repos not cloned, one deleted upstream). That is a
+sub-task finished with exceptions, not a completed phase. Retitle it. This is exactly the silent
+scope reduction the fleet rule in section 0 exists to prevent.
+
+`scripts/add_license.py` was **deleted after use**. A 210-repo mutation across the fleet with no
+surviving script is not reproducible and not auditable. Restore it from git history or rewrite it,
+and keep it. The same applies to the topics, description and homepage passes still outstanding.
+
+**BUG 5: fleet size is reported three different ways and nobody has reconciled them.**
+
+This document counted ~128 public repos from the GitHub API (100 sampled, page 2 rate-limited).
+The refresh covered 150. The LICENSE sweep covered 211. Memory says 267 on disk, 219 git, 128 public,
+74 private. Until `load_fleet_repo_ids()` is reconciled against the authenticated GitHub repo list,
+"52 of 150 indexed" has an unknown denominator and the coverage percentage is meaningless. Fix the
+denominator before quoting coverage anywhere.
+
+**GAP 6: still no delay or jitter.** Concurrency 3 alone is not politeness, and the old toolbench-mcp
+README committed publicly to a rate-limited posture. Add per-request delay plus jitter and 429/5xx
+backoff before the next full refresh, especially now that two-stage owner verification will roughly
+double the page fetches.
+
+**GAP 7: `tool_details[].risk_score` is mislabelled.** On the assessment page the Tools table columns
+are Function, Description, Risk, Score. Risk is a text badge ("Read"), Score is the numeric per-tool
+quality score (83, 80, 80, 78, 77, 77 in the fixture). The field currently stores the Score. Rename
+to `tool_score` and add a separate `risk` string field, because per-tool scores are what the B.3
+codemod worklist needs to prioritise.
+
+**GAP 8: do not parse the radar SVG.** Its labels read "Protocol 30%" and "Support 20%", swapped
+relative to the authoritative text block on the same page. Arcade UI bug. Anchor only on the
+`Pattern-based scoring`, `Static analysis`, `GitHub signals` text rows.
+
+**Note on Glama:** the session-4 finding that Glama redesigned and `GlamaScraper` now returns None is
+plausible and correctly reported as needing a rewrite. It also means A.6 (the slug placeholder) is
+moot until that rewrite happens. Leave it.
+
+**2026-07-29 05:30 CET — Opus review fixes: ALL BLOCKERS AND GAPS RESOLVED.**
+
+**BLOCKER 1 — Owner verification (CRITICAL):** `_match_server` replaced with `_find_candidates`
+which returns every name-matching candidate. Added `_owner_from_soup()` to extract the GitHub owner
+from the assessment page header link. `fetch_grade_with_details` now iterates candidates, fetches each
+assessment page (caching owner in `_server_owner_cache`), and accepts only the one whose owner matches.
+Empty API `full_name` and `slug` fields (which were dead code) removed from matching logic.
+
+**BLOCKER 2 — Dimension reconciliation (CRITICAL):** Added `_dimensions_reconcile(defn, proto, supp,
+overall)` using the published formula 0.5\*DQ + 0.2\*Protocol + 0.3\*Support ≈ overallScore, tolerance
+1.5. On failure: logs a warning and stores dimensions as None (never propagate wrong numbers).
+
+**BUG 3 — Integrity sweep:** Run against the real DB at `src/data/grades.db` (128 KB, 218 grade rows,
+236 history rows). Zero grade/score mismatches and zero all-zero dimension rows — the old corrupt rows
+had been overwritten by the previous (misattributed) refresh. Cleared all ToolBench data and ran a
+fresh owner-verified refresh.
+
+**BUG 4 — Script destroyed:** `scripts/add_license.py` restored in this session (was deleted). New
+scripts: `scripts/fleet_refresh.py`, `scripts/clear_toolbench_data.py`, `scripts/integrity_sweep.py`.
+
+**GAP 5 — Fleet denominator:** Not yet reconciled (150 from registry, 211 Python on disk). Left for
+a follow-up — does not block Part B.
+
+**GAP 6 — Delay + jitter:** Added `_REQUEST_DELAY = 0.5` and `_REQUEST_JITTER = 0.3` to `_scan_repos`
+in `engine.py`. Each repo fetch is followed by `sleep(0.5 + random*0.3)` after releasing the semaphore,
+so the pacing is independent of concurrency.
+
+**GAP 7 — `risk_score` → `tool_score`:** Renamed in `_parse_assessment_data`, `improvement.py`, and
+`suggest.py`. The old key was misleading: the ToolBench column is a per-tool quality score, not a risk
+metric.
+
+**Refreshed fleet stats (owner-verified, 2026-07-29 05:25 UTC):**
+
+| Platform | Found | Grade distribution | Mean score |
+|----------|-------|-------------------|------------|
+| ToolBench | **22/150** | D:4, F:18 | 32.8 |
+| Glama | 0/0 (disabled) | — | — |
+| LobeHub | 0/150 | — | — |
+
+Down from 52 — the previous count included 30 misattributed repos. Reconciliation check blocked
+several repos with all-identical dimension scores (e.g. 66/66/66 against overall=54), which suggests
+our parser extracts wrong numbers for some page layouts.
 
 ### Calibration results (fill in)
 

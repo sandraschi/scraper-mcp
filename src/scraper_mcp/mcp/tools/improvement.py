@@ -107,7 +107,7 @@ async def scraper_improvement_plan(
     {"success": bool, "message": str, "data": {"repo": str, "grade": str, "score": float,
       "filtered_issues": [{"severity": str, "text": str, "fixes": [str]}],
       "skipped_exceptions": [str],
-      "worst_tools": [{"name": str, "risk_score": float}],
+      "worst_tools": [{"name": str, "tool_score": float}],
       "summary": str}}
 
     ## Examples
@@ -165,7 +165,7 @@ async def scraper_improvement_plan(
     filtered.sort(key=_severity_sort_key)
 
     # Sort tools by risk (highest first = worst = needs most attention)
-    worst_tools = sorted(tools, key=lambda t: t.get("risk_score", 0), reverse=True)[:10]
+    worst_tools = sorted(tools, key=lambda t: t.get("tool_score", 0), reverse=True)[:10]
 
     # Build summary
     critical_count = sum(1 for i in filtered if i["severity"] == "critical")
@@ -197,7 +197,7 @@ async def scraper_improvement_plan(
     if worst_tools:
         summary_lines.append("\n### Worst-Risk Tools")
         for t in worst_tools[:5]:
-            summary_lines.append(f"- {t.get('name')}: risk {t.get('risk_score', '?')}")
+            summary_lines.append(f"- {t.get('name')}: score {t.get('tool_score', '?')}")
 
     if skipped:
         summary_lines.append("\n### Skipped (Fleet Exceptions)")

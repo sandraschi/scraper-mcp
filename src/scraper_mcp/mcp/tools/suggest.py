@@ -344,7 +344,7 @@ async def scraper_improve_suggest(
     {"success": bool, "message": str, "data": {
       "repo": str, "grade": str, "score": float,
       "suggestions": [{"severity": str, "title": str, "code": str, "applies_to": str, "issue": str}],
-      "worst_tools": [{"name": str, "risk_score": float}],
+      "worst_tools": [{"name": str, "tool_score": float}],
       "markdown": str}}
 
     ## Examples
@@ -400,7 +400,7 @@ async def scraper_improve_suggest(
 
     suggestions.sort(key=lambda s: SEVERITY_ORDER.get(s["severity"], 99))
 
-    worst_tools = sorted(tools, key=lambda t: t.get("risk_score", 0), reverse=True)[:5]
+    worst_tools = sorted(tools, key=lambda t: t.get("tool_score", 0), reverse=True)[:5]
 
     # Build markdown
     md = [
@@ -421,7 +421,7 @@ async def scraper_improve_suggest(
     if worst_tools:
         md.append("### Tools needing most attention\n")
         for t in worst_tools:
-            md.append(f"- {t.get('name')} (risk: {t.get('risk_score', '?')})")
+            md.append(f"- {t.get('name')} (score: {t.get('tool_score', '?')})")
         md.append("")
 
     return {

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import random
 from typing import Any
 
 import httpx
@@ -22,6 +23,8 @@ log = logging.getLogger(__name__)
 
 GradeRow = dict[str, Any]
 DEFAULT_CONCURRENCY = 3
+_REQUEST_DELAY = 0.5  # base seconds between requests
+_REQUEST_JITTER = 0.3  # max random jitter added to the delay
 _LobeHub_USER_AGENT = "scraper-mcp/0.1 (fleet monitor; polite daily scan)"
 
 
@@ -109,6 +112,7 @@ async def _scan_repos(
                         error=f"{type(exc).__name__}: {exc}",
                     )
                 )
+        await asyncio.sleep(_REQUEST_DELAY + random.random() * _REQUEST_JITTER)
 
     await asyncio.gather(*[_one(repo) for repo in repos])
     return rows
