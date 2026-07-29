@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Radio, BarChart3, Wrench, ScrollText, Grid3X3, HelpCircle, Settings } from "lucide-react";
+import { Bug, LayoutDashboard, Radio, BarChart3, Wrench, ScrollText, Grid3X3, HelpCircle, Settings } from "lucide-react";
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("scraper-sidebar") === "1");
@@ -17,6 +17,7 @@ export function Sidebar() {
     { to: "/apps", icon: Grid3X3, label: "Apps" },
     { to: "/settings", icon: Settings, label: "Settings" },
     { to: "/help", icon: HelpCircle, label: "Help" },
+    { to: "/fix", icon: Bug, label: "Fix" },
     { to: "/logs", icon: ScrollText, label: "Logs" },
     { to: "/platforms", icon: Radio, label: "Platforms" },
   ];
