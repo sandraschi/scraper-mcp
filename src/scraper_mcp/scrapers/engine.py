@@ -21,7 +21,8 @@ from scraper_mcp.fleet_registry import load_fleet_repo_ids
 log = logging.getLogger(__name__)
 
 GradeRow = dict[str, Any]
-DEFAULT_CONCURRENCY = 12
+DEFAULT_CONCURRENCY = 3
+_LobeHub_USER_AGENT = "scraper-mcp/0.1 (fleet monitor; polite daily scan)"
 
 
 def _normalize_row(repo: str, **fields: Any) -> GradeRow:
@@ -49,6 +50,7 @@ def _normalize_row(repo: str, **fields: Any) -> GradeRow:
         "trust_score",
         "top_issues",
         "server_id",
+        "error",
     ):
         if key in fields:
             row[key] = fields[key]
@@ -97,6 +99,16 @@ async def _scan_repos(
                     rows.append(row)
             except Exception as exc:
                 log.warning("%s: fetch_grade(%s) failed: %s", fetch_one.__self__.id, repo, exc)
+                rows.append(
+                    _normalize_row(
+                        repo,
+                        grade="?",
+                        score=None,
+                        status="fetch_error",
+                        tools=0,
+                        error=f"{type(exc).__name__}: {exc}",
+                    )
+                )
 
     await asyncio.gather(*[_one(repo) for repo in repos])
     return rows
@@ -132,43 +144,32 @@ class ToolBenchScraper(BaseScraper):
         )
 
     async def request_reassess(self, owner: str, repo: str) -> bool:
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            r = await client.get(f"{self.base_url}/submit")
-            return r.status_code == 200
+        log.warning(
+            "request_reassess(%s/%s): ToolBench manual submit required. "
+            "No programmatic endpoint is known. Visit %s/tools and click 'Submit'.",
+            owner,
+            repo,
+            self.base_url,
+        )
+        return False
 
 
 class GlamaScraper(BaseScraper):
-    """Glama.ai — score page scraper with per-tool TDQS dimensions."""
+    """Glama.ai — score page scraper.
+
+    NOTE (2026-07-29): Glama completely redesigned their site. The /score page
+    no longer has TDQS dimensions, X/5 scores, or parseable grade data. The
+    old scraper in glama_score.py is broken for the current layout.
+    fetch_grade returns None (not indexed) until a new parser is written.
+    """
 
     id = "glama"
     name = "Glama.ai"
     base_url = "https://glama.ai"
 
     async def fetch_grade(self, owner: str, repo: str) -> GradeRow | None:
-        from scraper_mcp.scrapers.glama_score import scrape_score_page
-
-        result = await scrape_score_page(owner, repo)
-        if not result:
-            return None
-        slug = repo  # placeholder; slug can differ (e.g. calibremcp)
-        page_url = f"{self.base_url}/mcp/servers/{owner}/{slug}/score"
-
-        return _normalize_row(
-            repo,
-            grade=result.get("grade", "?"),
-            score=result.get("score"),
-            url=page_url,
-            status=result.get("status", "indexed"),
-            tools=result.get("tools", 0),
-            tdqs_mean=result.get("tdqs_mean"),
-            tdqs_min=result.get("tdqs_min"),
-            tdqs_grade=result.get("tdqs_grade"),
-            coherence_grade=result.get("coherence_grade"),
-            maintenance_grade=result.get("maintenance_grade"),
-            tool_details=result.get("tool_details"),
-            latest_release=result.get("latest_release"),
-            profile_completion=result.get("profile_completion"),
-        )
+        log.warning("Glama scraper disabled — site redesign (2026-07). No TDQS/score data available.")
+        return None
 
     async def request_reassess(self, owner: str, repo: str) -> bool:
         return False
@@ -183,8 +184,9 @@ class LobeHubScraper(BaseScraper):
 
     async def fetch_grade(self, owner: str, repo: str) -> GradeRow | None:
         url = f"{self.base_url}/mcp/{owner}/{repo}"
+        headers = {"User-Agent": _LobeHub_USER_AGENT}
         async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
-            r = await client.get(url)
+            r = await client.get(url, headers=headers)
             if r.status_code != 200:
                 return None
             text = r.text.lower()

@@ -1,0 +1,550 @@
+{
+  "servers": [
+    {
+      "id": "cmmjaiup2042usb9t2r4bjype",
+      "name": "agent-scraper-mcp",
+      "description": "Web scraping MCP server for AI agents \u2014 screenshots, content extraction, structured scraping",
+      "grade": "C",
+      "overallScore": 67,
+      "status": "SCORED",
+      "origin": "COMMUNITY",
+      "hosting": null,
+      "transport": "STREAMABLE_HTTP",
+      "language": "python",
+      "toolCount": 6,
+      "industries": [
+        {
+          "name": "Generic",
+          "slug": "generic"
+        }
+      ],
+      "integrations": [
+        {
+          "name": "HTTP (Web)",
+          "slug": "http-web",
+          "category": "Browser & Web"
+        },
+        {
+          "name": "Google Search",
+          "slug": "google-search",
+          "category": "Search Engine"
+        },
+        {
+          "name": "Playwright Browser",
+          "slug": "playwright-browser",
+          "category": "Browser & Web"
+        }
+      ]
+    },
+    {
+      "id": "cmmiudfwt01llfqqw8dt8d41p",
+      "name": "scraper-mcp",
+      "description": "Context-optimized MCP server for web scraping functionality with support for HTML, markdown, text extraction, link extra",
+      "grade": "C",
+      "overallScore": 62,
+      "status": "SCORED",
+      "origin": "COMMUNITY",
+      "hosting": null,
+      "transport": "STREAMABLE_HTTP",
+      "language": "python",
+      "toolCount": 9,
+      "industries": [
+        {
+          "name": "Generic",
+          "slug": "generic"
+        }
+      ],
+      "integrations": [
+        {
+          "name": "Perplexity AI",
+          "slug": "perplexity-ai",
+          "category": "Search Engine"
+        }
+      ]
+    },
+    {
+      "id": "cmmitnssl01c1mzg3d71hd0id",
+      "name": "scraper-mcp",
+      "description": "A web scraping MCP server that provides efficient webpage scraping tools. Supports scraping HTML content, converting to ",
+      "grade": "D",
+      "overallScore": 53,
+      "status": "SCORED",
+      "origin": "COMMUNITY",
+      "hosting": null,
+      "transport": "STREAMABLE_HTTP",
+      "language": "python",
+      "toolCount": 7,
+      "industries": [
+        {
+          "name": "Generic",
+          "slug": "generic"
+        }
+      ],
+      "integrations": [
+        {
+          "name": "HTTP",
+          "slug": "http",
+          "category": "Browser & Web"
+        }
+      ]
+    },
+    {
+      "id": "cmmiudskl0f38fqqwinvhbqfs",
+      "name": "scraper-mcp",
+      "description": "FastAPI-based MCP server for web scraping with progressive fallbacks. Supports multiple scraping strategies (HTTP, Beaut",
+      "grade": "F",
+      "overallScore": 49,
+      "status": "SCORED",
+      "origin": "COMMUNITY",
+      "hosting": null,
+      "transport": "STREAMABLE_HTTP",
+      "language": "python",
+      "toolCount": 11,
+      "industries": [
+        {
+          "name": "Generic",
+          "slug": "generic"
+        }
+      ],
+      "integrations": [
+        {
+          "name": "DuckDuckGo",
+          "slug": "duckduckgo",
+          "category": "Search Engine"
+        },
+        {
+          "name": "Playwright",
+          "slug": "playwright",
+          "category": "Browser & Web"
+        },
+        {
+          "name": "Google Search",
+          "slug": "google-search",
+          "category": "Search Engine"
+        },
+        {
+          "name": "trafilatura",
+          "slug": "trafilatura",
+          "category": "Other"
+        },
+        {
+          "name": "HTTP/HTTPS Web (Generic)",
+          "slug": "http-https-web-generic",
+          "category": "Browser & Web"
+        }
+      ]
+    },
+    {
+      "id": "cmmiudmf808qqfqqwwrl2xzld",
+      "name": "linkedin-scraper-mcp",
+      "description": "MCP server for job scraping via Apify, supporting LinkedIn and Indeed job searches",
+      "grade": "F",
+      "overallScore": 47,
+      "status": "SCORED",
+      "origin": "COMMUNITY",
+      "hosting": null,
+      "transport": "STREAMABLE_HTTP",
+      "language": "typescript",
+      "toolCount": 4,
+      "industries": [
+        {
+          "name": "Sales",
+          "slug": "sales"
+        },
+        {
+          "name": "HR & People",
+          "slug": "hr-people"
+        }
+      ],
+      "integrations": [
+        {
+          "name": "Apify",
+          "slug": "apify",
+          "category": "Other"
+        }
+      ]
+    },
+    {
+      "id": "cmmiudqs60ddgfqqw5a79k7e8",
+      "name": "usescraper-mcp-server",
+      "description": "Scrape websites to markdown",
+      "grade": "F",
+      "overallScore": 46,
+      "status": "SCORED",
+      "origin": "COMMUNITY",
+      "hosting": null,
+      "transport": "STDIO",
+      "language": "typescript",
+      "toolCount": 1,
+      "industries": [
+        {
+          "name": "Generic",
+          "slug": "generic"
+        }
+      ],
+      "integrations": [
+        {
+          "name": "UseScraper",
+          "slug": "usescraper",
+          "category": "Other"
+        }
+      ]
+    },
+    {
+      "id": "cmmittfqy03s2mzg363pc405m",
+      "name": "article-scraper-mcp",
+      "description": "MCP server that fetches article data (title, text, author, date) from a URL using newspaper3k",
+      "grade": "F",
+      "overallScore": 44,
+      "status": "SCORED",
+      "origin": "COMMUNITY",
+      "hosting": null,
+      "transport": "STDIO",
+      "language": "python",
+      "toolCount": 1,
+      "industries": [
+        {
+          "name": "Marketing",
+          "slug": "marketing"
+        },
+        {
+          "name": "Content & Media",
+          "slug": "content-media"
+        }
+      ],
+      "integrations": [
+        {
+          "name": "HTTP (Web)",
+          "slug": "http-web",
+          "category": "Browser & Web"
+        },
+        {
+          "name": "newspaper3k",
+          "slug": "newspaper3k",
+          "category": "Other"
+        }
+      ]
+    },
+    {
+      "id": "cmmiudo960ag3fqqw021s5ygn",
+      "name": "Webscraper-MCP-Server",
+      "description": "Local MCP web scraping service with dynamic page support for AI agent integration. Exposes web scraping functionality as",
+      "grade": "F",
+      "overallScore": 38,
+      "status": "SCORED",
+      "origin": "COMMUNITY",
+      "hosting": null,
+      "transport": "STDIO",
+      "language": "python",
+      "toolCount": 3,
+      "industries": [
+        {
+          "name": "Generic",
+          "slug": "generic"
+        }
+      ],
+      "integrations": [
+        {
+          "name": "Playwright",
+          "slug": "playwright",
+          "category": "Browser & Web"
+        },
+        {
+          "name": "BeautifulSoup4",
+          "slug": "beautifulsoup4",
+          "category": "Other"
+        },
+        {
+          "name": "HTTP (httpx)",
+          "slug": "http-httpx",
+          "category": "Other"
+        }
+      ]
+    },
+    {
+      "id": "cmmiudkym0789fqqwl1eympnv",
+      "name": "twitter-scraper-mcp",
+      "description": "MCP server for scraping and interacting with Twitter/X using the agent-twitter-client library",
+      "grade": "F",
+      "overallScore": 36,
+      "status": "SCORED",
+      "origin": "COMMUNITY",
+      "hosting": null,
+      "transport": "STDIO",
+      "language": "typescript",
+      "toolCount": 2,
+      "industries": [
+        {
+          "name": "Marketing",
+          "slug": "marketing"
+        },
+        {
+          "name": "Communication",
+          "slug": "communication"
+        }
+      ],
+      "integrations": [
+        {
+          "name": "X (formerly Twitter)",
+          "slug": "x-formerly-twitter",
+          "category": "Communication Platform"
+        }
+      ]
+    },
+    {
+      "id": "cmmiu8emo0a8smzg30impgm8x",
+      "name": "context-scraper-mcp-server",
+      "description": "A powerful MCP server for web crawling and content extraction using Crawl4AI with advanced anti-detection, stealth brows",
+      "grade": "F",
+      "overallScore": 22,
+      "status": "SCORED",
+      "origin": "COMMUNITY",
+      "hosting": null,
+      "transport": "STDIO",
+      "language": "python",
+      "toolCount": 7,
+      "industries": [
+        {
+          "name": "Generic",
+          "slug": "generic"
+        }
+      ],
+      "integrations": [
+        {
+          "name": "AWS Bedrock",
+          "slug": "aws-bedrock",
+          "category": "AI & ML Platform"
+        },
+        {
+          "name": "Crawl4AI",
+          "slug": "crawl4ai",
+          "category": "Browser & Web"
+        },
+        {
+          "name": "Anthropic Claude API",
+          "slug": "anthropic-claude-api",
+          "category": "AI & ML Platform"
+        }
+      ]
+    },
+    {
+      "id": "cmmiudfkc01cmfqqw4vzufe9v",
+      "name": "cloudscraper-mcp-server",
+      "description": "MCP Server for CloudScraper - Bypass Cloudflare restrictions for LLMs",
+      "grade": "F",
+      "overallScore": 0,
+      "status": "SCORED",
+      "origin": "COMMUNITY",
+      "hosting": null,
+      "transport": "STDIO",
+      "language": "python",
+      "toolCount": 0,
+      "industries": [],
+      "integrations": []
+    },
+    {
+      "id": "cmmiudgmi02lkfqqwvjkl8kfy",
+      "name": "outscraper-mcp",
+      "description": "Streamlined MCP server for Outscraper's Google Maps data extraction services",
+      "grade": "F",
+      "overallScore": 0,
+      "status": "SCORED",
+      "origin": "COMMUNITY",
+      "hosting": null,
+      "transport": "STDIO",
+      "language": "python",
+      "toolCount": 0,
+      "industries": [],
+      "integrations": []
+    }
+  ],
+  "total": 12,
+  "page": 1,
+  "size": 20,
+  "totalPages": 1,
+  "filters": {
+    "languages": [
+      "C#",
+      "Python",
+      "abap",
+      "bicep",
+      "c",
+      "c#",
+      "c++",
+      "clojure",
+      "csharp",
+      "csharp|python",
+      "css",
+      "dart",
+      "dockerfile",
+      "elixir",
+      "go",
+      "go template",
+      "go|javascript|python|rust",
+      "go|python",
+      "go|python|mixed",
+      "go|python|typescript",
+      "go|rust",
+      "haskell",
+      "hcl",
+      "html",
+      "java",
+      "javascript",
+      "javascript|python",
+      "java|python",
+      "java|python|typescript",
+      "java|typescript|python",
+      "julia",
+      "jupyter notebook",
+      "kotlin",
+      "kotlin|typescript|python",
+      "lisp",
+      "mixed",
+      "multi",
+      "multi-language",
+      "nix",
+      "ocaml",
+      "php",
+      "polyglot",
+      "powershell",
+      "python",
+      "python|csharp|unknown",
+      "python|go",
+      "python|go|typescript",
+      "python|java",
+      "python|rust",
+      "python|rust|unknown",
+      "python|typescript",
+      "python|typescript|go",
+      "ruby",
+      "rust",
+      "rust|javascript",
+      "scala",
+      "shell",
+      "swift",
+      "typescript",
+      "typescript,python",
+      "typescript,python,go",
+      "typescript|csharp",
+      "typescript|go",
+      "typescript|go|dotnet",
+      "typescript|java",
+      "typescript|javascript",
+      "typescript|python",
+      "typescript|python|go",
+      "typescript|python|javascript",
+      "typescript|python|mixed",
+      "unknown"
+    ],
+    "industries": [
+      "Accessibility",
+      "Agriculture",
+      "Analytics & BI",
+      "Architecture",
+      "Architecture, Engineering & Construction",
+      "Automotive",
+      "Aviation",
+      "Aviation & Travel",
+      "Banking",
+      "Business & General Office",
+      "Business Services",
+      "Chemical & Materials Science",
+      "Chemical Engineering",
+      "Communication",
+      "Community Management",
+      "Construction & Engineering",
+      "Content & Media",
+      "Customer Support",
+      "Data Engineering",
+      "Design & Creative Services",
+      "DevOps & Infrastructure",
+      "E-commerce",
+      "Education",
+      "Emergency Management & Disaster Response",
+      "Energy",
+      "Energy & Environment",
+      "Energy & Utilities",
+      "Entertainment",
+      "Entertainment & Gaming",
+      "Environmental & Sustainability",
+      "Environmental Science",
+      "Facilities & Operations",
+      "Fashion",
+      "Finance",
+      "Fitness & Wellness",
+      "Food & Beverage",
+      "Gaming",
+      "Generic",
+      "Government",
+      "Government & Civic Services",
+      "Government & Municipal Services",
+      "Government & Policy",
+      "Government & Public Administration",
+      "Government & Public Affairs",
+      "Government & Public Sector",
+      "Government & Public Services",
+      "HR & People",
+      "Health & Fitness",
+      "Healthcare",
+      "Hobby & Collectibles",
+      "Hospitality",
+      "Hospitality & Food Service",
+      "Hospitality & Travel",
+      "IT & Operations",
+      "IT Service Management",
+      "Insurance",
+      "Law Enforcement & Investigation",
+      "Legal",
+      "Lifestyle & Hobbies",
+      "Logistics",
+      "Logistics & Delivery",
+      "Logistics & Shipping",
+      "Logistics & Supply Chain",
+      "Manufacturing",
+      "Market Research",
+      "Marketing",
+      "Music",
+      "Non-Profit & International Development",
+      "Pharmaceutical",
+      "Product Management",
+      "Productivity",
+      "Productivity Suite",
+      "Professional Services",
+      "Project Management",
+      "Public Safety & Emergency Management",
+      "Quality Assurance",
+      "Real Estate",
+      "Real Estate & Property Management",
+      "Recreation & Outdoor Activities",
+      "Religion & Non-profit",
+      "Religion & Spirituality",
+      "Religion & Theology",
+      "Research",
+      "Research & Academia",
+      "Retail",
+      "Sales",
+      "Scientific & Research",
+      "Security",
+      "Small Business",
+      "Smart Home / IoT",
+      "Social Services",
+      "Software Development",
+      "Sports",
+      "Sports & Athletics",
+      "Sports & Entertainment",
+      "Sports & Fitness",
+      "Sports & Recreation",
+      "Supply Chain",
+      "Telecommunications",
+      "Transportation",
+      "Transportation & Logistics",
+      "Transportation & Mobility",
+      "Transportation & Public Transit",
+      "Travel",
+      "Travel & Hospitality",
+      "Travel & Tourism",
+      "Travel & Transportation",
+      "Water & Wastewater Treatment"
+    ]
+  }
+}

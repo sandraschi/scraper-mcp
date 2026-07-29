@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-07-29 — Part A parser fixes + fleet LICENSE sweep
+
+- Fix dimension scores always 0.0 (A.1): `soup.get_text(" ", strip=True)`, `_extract_pct` returns `float | None`
+- Fix dimension scores returning methodology weights (50/20/30) instead of actual scores — skip `%`-suffixed numbers
+- Fix grade regex overriding API grade (A.2): deleted regex, `resolve_grade()` prefers API, derives from score
+- Fix `request_reassess` returning True when it did nothing (A.3): now returns False with log warning
+- Fix doubled API call (A.4.2): `fetch_grade_with_details` makes 1 call instead of 2
+- Fix default concurrency 12→3, add error rows on fetch failure instead of silent drops
+- Fix name matching (A.5): `_match_server` tries name, full_name suffix, slug
+- Fix Glama scraper (A.6): pass dash-stripped slug, then disable due to site redesign
+- Fix label "Protocol Compliance" → "Protocol Readiness" (real on-page text)
+- Add 26 parser unit tests with live API fixtures
+- Run full fleet refresh: 52/150 repos found on ToolBench, mean score 40.7, 0 errors
+- Add MIT LICENSE to ~110 fleet repos (210/211 Python repos now licensed)
+- Update glama.json typo + missing tools
+- Add PRD.md, INSTALL.md
+- Fix overte-mcp pre-commit hook (ruff errors in run_server.py)
+
 ## 2026-07-14 — update docs
 
 - Add framer-motion + zustand to webapp deps (fleet standard)

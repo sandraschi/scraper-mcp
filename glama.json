@@ -2,7 +2,7 @@
   "name": "scraper-mcp",
   "version": "0.2.0",
   "description": "Fleet MCP grade aggregator for ToolBench, Glama, and LobeHub",
-  "author": "Sandra Schieder",
+  "author": "Sandra Schipal",
   "repository": "https://github.com/sandraschi/scraper-mcp",
   "homepage": "https://github.com/sandraschi/scraper-mcp",
   "tools": [
@@ -15,7 +15,10 @@
     "scraper_status",
     "scraper_help",
     "scraper_platforms",
-    "toolbench_guide"
+    "toolbench_guide",
+    "scraper_shutdown",
+    "show_matrix_card",
+    "show_status_card"
   ],
   "categories": ["developer-tools", "monitoring"]
 }

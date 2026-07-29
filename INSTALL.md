@@ -1,75 +1,58 @@
-# Installation
+# scraper-mcp Installation Guide
 
-## 🚀 Quick Start (recommended)
+## Prerequisites
+
+- Python 3.12+
+- [uv](https://docs.astral.sh/uv/) (package manager)
+- Git
+
+## Quick Start
 
 ```powershell
-# Install just if you don't have it
-winget install Casey.Just    # Windows
-# scoop install just          # Windows (alternative)
-# brew install just           # macOS
-# sudo apt install just       # Debian/Ubuntu
-# cargo install just          # Linux (Rust)
-
-git clone https://github.com/sandraschi/scraper-mcp
+# Clone and enter
+git clone https://github.com/sandraschi/scraper-mcp.git
 cd scraper-mcp
-just
+
+# Create virtualenv and install deps
+uv sync --extra dev
+
+# Run tests
+uv run pytest tests/ -q
+
+# Start the full stack (backend + webapp)
+.\start.ps1
 ```
 
-The interactive recipe dashboard opens in your browser. From there:
+The backend starts on port **10998**, webapp on **10999**.
+
+## Configuration
+
+Set these environment variables (or copy `.env.example` to `.env`):
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `HOST` | `127.0.0.1` | Backend bind address |
+| `PORT` | `10998` | Backend port |
+| `WEBAPP_PORT` | `10999` | Frontend dev server port |
+| `LLM_GATEWAY_URL` | — | llm-gateway URL for AI suggestions |
+| `LLM_GATEWAY_PROVIDER` | `ollama` | llm-gateway provider |
+| `LLM_GATEWAY_MODEL` | `qwen2.5:14b` | llm-gateway model |
+| `AIWATCHER_URL` | `http://127.0.0.1:10946/api/fleet/event` | aiwatcher-mcp alert target |
+| `SCRAPER_ALERT_THRESHOLD` | `B` | Grade threshold for alerts |
+
+## Webapp
+
+The webapp is a React + Vite + Tailwind app in `webapp/`. Development:
 
 ```powershell
-just bootstrap   # install all dependencies
-just serve       # start the server
-just web         # start the frontend (if applicable)
+cd webapp
+npm install
+npm run dev
 ```
 
-> **Why not `pip install`?** MCP servers bundle webapps, configs, project scaffolding, and tooling that a flat Python package can't deliver. PyPI offers no safety advantage — it doesn't audit packages either. `just` gives you the complete, ready-to-run stack.
+## Testing
 
----
-
-## 🐌 Traditional Setup
-
-If you prefer not to use `just`:
-
-1. Install [Python 3.13+](https://python.org) and [uv](https://docs.astral.sh/uv/)
-2. Clone and enter the repo:
-   ```powershell
-   git clone https://github.com/sandraschi/scraper-mcp
-   cd scraper-mcp
-   ```
-3. Install dependencies:
-   ```powershell
-   uv sync --all-extras
-   ```
-4. Start the server:
-   ```powershell
-   # stdio mode (for MCP clients like Claude Desktop)
-   uv run python -m scraper_mcp.server
-
-   # HTTP mode (for web dashboard)
-   uv run uvicorn scraper_mcp.server:app --port 10998
-   ```
-
-4. (optional) Start the frontend:
-   ```powershell
-   cd webapp
-   npm install
-   npm run dev
-   ```
-
-5. Open `http://localhost:10998` or the frontend URL.
-
----
-
-## ❓ Troubleshooting
-
-| Issue | Fix |
-|---|---|
-| `just` not found | Install via `winget install Casey.Just`, `scoop install just`, or `brew install just` |
-| Port conflict | Run `just kill-all` to clear fleet ports (10700–11000) |
-| Dependencies out of sync | `uv sync --all-extras` |
-| Something else | [Open a GitHub issue](https://github.com/sandraschi/scraper-mcp/issues) |
-
----
-
-*See the main [README](README.md) for feature overview and documentation.*
+```powershell
+uv run pytest tests/ -q           # Unit tests (36 total)
+uv run pytest tests/ -v           # Verbose
+```
