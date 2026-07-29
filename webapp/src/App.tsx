@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import { AppLayout } from "./components/layout/app-layout";
 import { LoggerProvider } from "./context/logger-context";
 import Dashboard from "./pages/dashboard";
+import FixPage from "./pages/fix";
 import RepoDetail from "./pages/repo-detail";
 import Platforms from "./pages/platforms";
 import ToolsPage from "./pages/tools";
@@ -27,6 +28,8 @@ export default function App() {
             <Route path="/apps" element={<AppsPage />} />
             <Route path="/help" element={<HelpPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/fix" element={<FixPage />} />
+            <Route path="/fix/:repo" element={<FixPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
