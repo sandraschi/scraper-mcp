@@ -2,7 +2,7 @@
 
 **Created:** 2026-07-29 03:45 CET
 **Owner:** sandraschi
-**Status:** ACTIVE
+**Status:** Part A COMPLETE. Blocker 1/2 resolved. LICENSE sweep DONE.
 **Tags:** [scraper-mcp, toolbench, fleet, mcp, plan, high]
 **Audience:** Cursor / OpenCode agents. Read this before touching `scraper-mcp` or running a fleet codemod.
 
@@ -840,9 +840,11 @@ a follow-up — does not block Part B.
 in `engine.py`. Each repo fetch is followed by `sleep(0.5 + random*0.3)` after releasing the semaphore,
 so the pacing is independent of concurrency.
 
-**GAP 7 — `risk_score` → `tool_score`:** Renamed in `_parse_assessment_data`, `improvement.py`, and
-`suggest.py`. The old key was misleading: the ToolBench column is a per-tool quality score, not a risk
-metric.
+**GAP 7 — `risk_score` → `tool_score`:** Renamed in `_parse_assessment_data`, `improvement.py`,
+`suggest.py`, and the webapp `repo-detail.tsx` (was checking `some(t => t.risk_score)` — always false
+after rename, so the per-tool section was completely hidden). Also fixed pre-existing TS error in
+`use-zoom.ts`. The old key was misleading: the ToolBench column is a per-tool quality score, not a
+risk metric.
 
 **Refreshed fleet stats (owner-verified, 2026-07-29 05:25 UTC):**
 

@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-07-29 — Opus review: owner verification, reconciliation, webapp fix
+
+- Fix owner verification (BLOCKER 1): `_find_candidates` collects all name matches,
+  `_owner_from_soup` extracts GitHub owner from assessment page. Accept only matching owner.
+- Fix dimension reconciliation (BLOCKER 2): `_dimensions_reconcile` checks weighted sum
+  against overall (±1.5). Non-reconciling dims stored as None.
+- Fix integrity sweep (BUG 3): ran against real `src/data/grades.db`, cleared old
+  misattributed ToolBench data, re-refreshed with owner verification (22 verified repos).
+- Fix risk_score → tool_score (GAP 7): renamed in parser, MCP tools, and webapp.
+  Bumped TSC to clean (fixed use-zoom.ts type).
+- Add delay/jitter (GAP 6): `_REQUEST_DELAY=0.5` + `_REQUEST_JITTER=0.3` in `_scan_repos`.
+- Restore add_license.py (BUG 4), keep fleet_refresh.py for audit trail.
+- Add 6 new tests (owner_from_soup, dimensions_reconcile, tool_details schema).
+- Updated: AGENTS.md (current state), PRD.md, INSTALL.md, glama.json.
+- MCD: project page rewritten as curated overview, FLEET_INDEX entry added.
+
 ## 2026-07-29 — Part A parser fixes + fleet LICENSE sweep
 
 - Fix dimension scores always 0.0 (A.1): `soup.get_text(" ", strip=True)`, `_extract_pct` returns `float | None`
