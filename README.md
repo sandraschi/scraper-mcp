@@ -11,7 +11,7 @@
 
 > **[Installation Guide](INSTALL.md)** — quick start, manual setup, and troubleshooting
 
-**FastMCP 3.2** fleet server for MCP directory grades and ToolBench workflows. Monitors **ToolBench** (Arcade.dev), **Glama.ai**, and **LobeHub Marketplace**, plus the former **toolbench-mcp** features: `toolbench_guide`, Playwright page archiver, `/tools` and `/logs` fleet pages.
+**FastMCP 3.2** fleet server for MCP directory grades and ToolBench workflows. Monitors **ToolBench** (Arcade.dev, primary) and **LobeHub Marketplace** (presence probe), plus the former **toolbench-mcp** features: `toolbench_guide`, Playwright page archiver, `/tools` and `/logs` fleet pages. **Glama.ai** support is currently disabled pending a parser rewrite after their 2026-07 site redesign.
 
 ### Supersedes toolbench-mcp
 
@@ -25,9 +25,9 @@ MCP clients: point HTTP transport at `http://127.0.0.1:10998/mcp` (was 10817).
 ## Features
 
 - **Coverage matrix** — which fleet repos are indexed on which platforms
-- **Grade tracking** — letter grades, numeric scores, TDQS dimensions per platform
+- **Grade tracking** — letter grades and numeric scores per platform, owner-verified so a name collision cannot attribute someone else's grade to your repo
 - **Delta history** — SQLite-persisted grade changes over time
-- **Reassess triggers** — request rescoring via ToolBench submit flow
+- **Reassess guidance** — points at the ToolBench submit flow (no programmatic endpoint is known, so this does not auto-submit)
 - **LLM-powered suggestions** — `scraper_improve_suggest(use_llm=True)` routes through llm-gateway for AI-generated code fixes
 - **Grade drop alerts** — auto-notifies aiwatcher-mcp when a repo falls below threshold
 - **Trend API** — `GET /api/trends` tracks grade direction (+/-/=) per repo per platform
@@ -71,7 +71,7 @@ Browser: `http://127.0.0.1:10999`
 | `scraper_refresh` | Scan all platforms for fleet repos, persist grades |
 | `scraper_matrix` | Coverage matrix: repos x platforms with grade badges |
 | `scraper_repo` | Detailed report for a single repo with history |
-| `scraper_reassess` | Request rescoring on ToolBench (or all platforms) |
+| `scraper_reassess` | Reports that a manual submit is required and links the ToolBench submit flow. Does not auto-submit. |
 | `scraper_improve_suggest` | Generate code-level fix suggestions from ToolBench findings |
 | `scraper_improvement_plan` | Prioritized improvement plan mapped to fleet standards |
 | `scraper_status` | Server health, last refresh times, platform status |
@@ -90,7 +90,7 @@ Browser: `http://127.0.0.1:10999`
 ## Architecture
 
 ```
-scrapers/engine.py         # ToolBench, Glama, LobeHub scrapers
+scrapers/engine.py         # ToolBench + LobeHub scrapers (Glama disabled)
 analytics.py               # SQLite grade store + delta history
 scraper_api.py             # Playwright ToolBench archiver
 mcp/tools/                 # scraper_* tools, toolbench_guide, cards, prompts

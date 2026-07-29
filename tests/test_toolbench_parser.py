@@ -57,44 +57,52 @@ def test_extract_pct_float_value():
 
 
 def test_extract_pct_all_dimensions():
-    from scraper_mcp.scrapers.toolbench_score import _DIMENSION_LABELS, _extract_pct
+    from scraper_mcp.scrapers.toolbench_score import _DIMENSION_METHOD_STRINGS, _extract_pct
 
-    text = "Definition Quality 62 Protocol Readiness 48 Supportability 55"
-    assert _extract_pct(text, _DIMENSION_LABELS["definition_score"]) == 62.0
-    assert _extract_pct(text, _DIMENSION_LABELS["protocol_score"]) == 48.0
-    assert _extract_pct(text, _DIMENSION_LABELS["supportability_score"]) == 55.0
+    text = "Pattern-based scoring 62 Static analysis 48 GitHub signals 55"
+    assert _extract_pct(text, _DIMENSION_METHOD_STRINGS["definition_score"]) == 62.0
+    assert _extract_pct(text, _DIMENSION_METHOD_STRINGS["protocol_score"]) == 48.0
+    assert _extract_pct(text, _DIMENSION_METHOD_STRINGS["supportability_score"]) == 55.0
 
 
 def test_extract_pct_skips_percentage_weight():
     """The weight (50%) appears before the actual score (79). Must pick 79."""
     from scraper_mcp.scrapers.toolbench_score import _extract_pct
 
-    text = "Definition Quality Pattern-based scoring · 50% some markup 79"
-    assert _extract_pct(text, "Definition Quality") == 79.0
+    text = "Pattern-based scoring · 50% some markup 79"
+    assert _extract_pct(text, "Pattern-based scoring") == 79.0
 
 
 def test_extract_pct_number_not_percent_still_found():
     """A plain number without trailing % is matched normally."""
     from scraper_mcp.scrapers.toolbench_score import _extract_pct
 
-    text = "Protocol Readiness 80"
-    assert _extract_pct(text, "Protocol Readiness") == 80.0
+    text = "Static analysis 80"
+    assert _extract_pct(text, "Static analysis") == 80.0
+
+
+def test_extract_pct_miss_on_blurb():
+    """The methodology blurb 'Definition Quality (50%)' does not match
+    the method string 'Pattern-based scoring', so the blurb is invisible."""
+    from scraper_mcp.scrapers.toolbench_score import _extract_pct
+
+    blurb = "Local MCP - Scored on Definition Quality (50%), Protocol Readiness (20%)"
+    assert _extract_pct(blurb, "Pattern-based scoring") is None
 
 
 def test_dimension_scores_from_real_html_fixture():
-    """A.1 gate: every dimension parses non-null from a real fixture."""
+    """BLOCKER 2 regression: exact (79.0, 80.0, 38.0) on the real fixture."""
     from bs4 import BeautifulSoup
 
-    from scraper_mcp.scrapers.toolbench_score import _DIMENSION_LABELS, _extract_pct
+    from scraper_mcp.scrapers.toolbench_score import _DIMENSION_METHOD_STRINGS, _extract_pct
 
     html = _load_html_fixture()
     soup = BeautifulSoup(html, "lxml")
     text = soup.get_text(" ", strip=True)
 
-    for key, label in _DIMENSION_LABELS.items():
-        val = _extract_pct(text, label)
-        assert val is not None, f"{key} ({label}) is None in fixture HTML"
-        assert val not in (50.0, 20.0, 30.0), f"{key} ({label}) = {val} is a methodology weight, not a real score"
+    assert _extract_pct(text, _DIMENSION_METHOD_STRINGS["definition_score"]) == 79.0
+    assert _extract_pct(text, _DIMENSION_METHOD_STRINGS["protocol_score"]) == 80.0
+    assert _extract_pct(text, _DIMENSION_METHOD_STRINGS["supportability_score"]) == 38.0
 
 
 # ===========================================================================

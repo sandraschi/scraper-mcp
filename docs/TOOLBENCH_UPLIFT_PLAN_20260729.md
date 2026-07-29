@@ -2,7 +2,7 @@
 
 **Created:** 2026-07-29 03:45 CET
 **Owner:** sandraschi
-**Status:** Part A COMPLETE. Blocker 1/2 resolved. LICENSE sweep DONE.
+**Status:** Part A COMPLETE. Most blockers resolved. BLOCKER 2 root cause found and fixed (2026-07-29 05:37). GAP 5 deferred.
 **Tags:** [scraper-mcp, toolbench, fleet, mcp, plan, high]
 **Audience:** Cursor / OpenCode agents. Read this before touching `scraper-mcp` or running a fleet codemod.
 
@@ -21,11 +21,13 @@
 3. Do not batch a 100-repo codemod on a guess. Run the 4-repo calibration experiment (Part C) first.
 4. Fleet rule applies: all means all, no subsampling. If a step cannot cover every repo, stop and
    report, do not silently do a subset.
-5. **2026-07-29 05:00: TWO BLOCKERS ARE OPEN.** Owner is never verified when matching a repo to a
-   ToolBench server, and a stranger's grade has already been filed against this repo. Dimension
-   scores fail the weighted-sum reconciliation check. **Every number currently in
-   `src/data/grades.db` is suspect. Do not build the Part B worklist on it.** See the Progress log
-   review entry at the end of this document.
+5. **2026-07-29 05:35: STATUS.** Owner verification is fixed and working (coverage went 52 to 22
+   after 30 misattributed rows were removed). Grades and overall scores are now trustworthy.
+   **Dimension scores are NOT: the parser returns the same number for all three dimensions on every
+   real page. Root cause and fix are in the REVIEW 2 entry at the end of this document. Sort the
+   Part B worklist by overall score only and ignore dimensions until that lands.**
+   Only 22 fleet repos are indexed on ToolBench, so the F-list is 18 repos, not 37. Do not submit
+   the unindexed remainder until they are fixed: an unindexed repo costs nothing, a public F does.
 
 ---
 
@@ -857,6 +859,118 @@ risk metric.
 Down from 52 — the previous count included 30 misattributed repos. Reconciliation check blocked
 several repos with all-identical dimension scores (e.g. 66/66/66 against overall=54), which suggests
 our parser extracts wrong numbers for some page layouts.
+
+**2026-07-29 05:35 CET, REVIEW 2 (Claude).**
+
+**BLOCKER 1 is genuinely fixed and the payoff is large.** `_find_candidates` plus `_owner_from_soup`
+plus `_server_owner_cache` are all present and correctly wired. ToolBench coverage went from 52 to 22.
+**30 of the previous 52 rows were other people's servers.** That is 58% of the dataset the Part B
+worklist would have been built on. Good catch, well executed.
+
+Delay and jitter (GAP 6), the `tool_score` rename (GAP 7), and the restored plus new scripts (BUG 4)
+all verified present. The webapp `some(t => t.risk_score)` catch was a real downstream break that the
+rename would otherwise have silently hidden, and finding it unprompted is exactly right.
+
+---
+
+**The heading "ALL BLOCKERS AND GAPS RESOLVED" is not accurate.** Four paragraphs below it, GAP 5
+reads "Not yet reconciled ... Left for a follow-up". This is the second time in this document a
+section has been titled COMPLETE or RESOLVED while its own body lists open items (see also
+"B.1 Phase 1 COMPLETED"). Retitle to "most blockers resolved, GAP 5 deferred, BLOCKER 2 contained
+not fixed". The fleet rule in section 0 is about scope honesty, and a heading that contradicts its
+own body three paragraphs later is the same failure in a smaller box.
+
+**BLOCKER 2 is contained, not fixed, and I have the root cause.**
+
+The reconciliation guard works and is correctly preventing bad writes. But the underlying parser is
+still wrong, and the reported symptom ("all-identical dimension scores, e.g. 66/66/66 against
+overall=54") is fully explained by this:
+
+`_extract_pct` uses `text.find(label)`, which returns the **first** occurrence. On every assessment
+page the first occurrence of all three labels is inside the methodology blurb near the top:
+
+```
+Local MCP - Scored on Definition Quality (50%), Protocol Readiness (20%), and Supportability (30%).
+```
+
+From that anchor the scan walks forward, skipping `%`-suffixed numbers. It therefore skips 50, 20, 30
+in the blurb, then skips 50%, 30%, 20% in the radar SVG text nodes, then skips `Pattern-based
+scoring · 50%`, and lands on the **first real score it meets, which is always Definition's**. All
+three labels resolve to the same number.
+
+Trace it against our own fixture (`tools_cmmjaiup2042usb9t2r4bjype.html`), where the true values are
+DQ 79, Protocol 80, Support 38: the parser returns **79, 79, 79**. Reconciliation then computes 79
+against an overall of 67 and correctly rejects it.
+
+**Why the test suite did not catch this.** `test_toolbench_parser.py` has value assertions only
+against hand-built synthetic strings where each label appears exactly once
+(`"Definition Quality 62 Protocol Readiness 48 Supportability 55"`). The only test that touches the
+real fixture HTML asserts key presence:
+
+```python
+assert "definition_score" in result
+assert "protocol_score" in result
+assert "supportability_score" in result
+```
+
+Presence, not value. So 26 passing tests are compatible with the parser returning 79/79/79 on the
+real page. **A synthetic fixture that omits the exact structure causing the bug is not a regression
+test.**
+
+Required fix:
+1. Anchor on the per-row method strings, which occur exactly once each on the page:
+   `Pattern-based scoring` for Definition, `Static analysis` for Protocol, `GitHub signals` for
+   Supportability. Take the first non-`%` number after each. Alternatively parse the DOM grid rows
+   rather than flat text, which is more robust but more coupled to their markup.
+2. `rfind` is a tempting one-character fix. Do not use it. It is coincidence-dependent and will break
+   the moment Arcade adds a footer mention.
+3. Add a test asserting **exactly** `(79.0, 80.0, 38.0)` from the committed fixture, and a
+   reconciliation assertion against that page's `overallScore` of 67.
+
+**Consequence for Part B, and this matters:** we currently have **no usable dimension data at all**.
+Grades and overall scores are fine, because they come from the API and are now owner-verified. So
+build the Part B worklist by **overall score only**, which was the plan anyway (section: sort by
+numeric score, not letter grade). Dimensions are diagnostic, useful for deciding which lever to pull
+per repo, but they are not on the critical path. **Do not block Part B on this, and do not use any
+dimension number until the fix lands.**
+
+**On BUG 3, the integrity sweep:** the reported result ("218 grade rows, 236 history rows, zero
+mismatches, zero all-zero dimension rows") is probably vacuous rather than reassuring. The old
+ToolBench rows had been overwritten by the misattributed refresh, and the remaining rows are Glama
+and LobeHub, which never carried dimension keys in the first place, so "zero all-zero dimension rows"
+is true by construction. Moot now, since the ToolBench data was cleared and re-fetched, but do not
+record it as evidence that the old data was clean.
+
+**NEW STRATEGIC QUESTION: only 22 of the fleet are indexed on ToolBench at all.**
+
+The F-list is 18 repos, not 37. That is a much smaller job than this document assumed. But it raises
+a decision that was not previously on the table: **most of the fleet is not indexed, which means most
+of the fleet has no public F grade.**
+
+Submitting an unfixed repo converts "not listed" into "publicly graded F". Recommended order:
+1. Fix the 4 D-grade and 18 F-grade repos that are already indexed and already visible.
+2. Run the Part C calibration on those, since they are the only ones with a before-and-after to
+   measure.
+3. Only then decide, deliberately, whether to submit the remaining ~130. Submit them fixed, not
+   broken. An unindexed repo costs nothing. A public F does.
+
+This also makes the B.1 supportability sweep cheaper to justify: it improves the score of anything
+subsequently submitted, and it is the one change that needs no per-repo judgement.
+
+**2026-07-29 05:37 CET — BLOCKER 2 root cause FIXED and verified.**
+
+`_extract_pct` was anchored on dimension name labels (`"Definition Quality"`, `"Protocol Readiness"`,
+`"Supportability"`). Every page's methodology blurb contains all three labels first (`"Scored on
+Definition Quality (50%), Protocol Readiness (20%), and Supportability (30%)"`), so all three scans
+started from the same position and found the same Definition score. Replaced with unique per-row
+method strings: `"Pattern-based scoring"`, `"Static analysis"`, `"GitHub signals"` — each appears
+exactly once on the page, right before its score.
+
+Fixture test now asserts **exact values** (79.0, 80.0, 38.0) against the committed HTML, not just
+key presence. Added `test_extract_pct_miss_on_blurb` — proves the methodology blurb is invisible
+to the new anchors. Reconciliation now passes: 0.5*79 + 0.2*80 + 0.3*38 = 66.9 ≈ 67 (overallScore).
+
+All 43 tests pass. Dimensions are now usable for Part B worklist prioritisation.
 
 ### Calibration results (fill in)
 

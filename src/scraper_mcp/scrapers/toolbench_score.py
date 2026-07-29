@@ -24,12 +24,17 @@ _server_owner_cache: dict[str, str] = {}
 # Tolerance for dimension-score weighted-sum reconciliation.
 _RECONCILE_TOLERANCE = 1.5
 
-# Full on-page labels. The short forms ("Definition") do not match, because the
-# rendered text reads "Definition Quality 62", not "Definition 62".
-_DIMENSION_LABELS = {
-    "definition_score": "Definition Quality",
-    "protocol_score": "Protocol Readiness",
-    "supportability_score": "Supportability",
+# Unique per-dimension method strings, appearing exactly once per assessment page.
+# The old labels ("Definition Quality", "Protocol Readiness", "Supportability") all
+# appear first in the methodology blurb ("Local MCP - Scored on Definition Quality (50%),
+# Protocol Readiness (20%), and Supportability (30%)").  _extract_pct scans forward from
+# that anchor and always lands on the Definition score for all three, because Protocol
+# and Supportability scores come later in the page and the scan hits the Definition
+# number first every time.  The method strings below are unique to each dimension row.
+_DIMENSION_METHOD_STRINGS = {
+    "definition_score": "Pattern-based scoring",
+    "protocol_score": "Static analysis",
+    "supportability_score": "GitHub signals",
 }
 
 # Published at https://toolbench.arcade.dev/methodology
@@ -204,7 +209,7 @@ def _parse_assessment_data(
         "server_id": server_id,
     }
 
-    for key, label in _DIMENSION_LABELS.items():
+    for key, label in _DIMENSION_METHOD_STRINGS.items():
         result[key] = _extract_pct(text, label)
 
     issues = []

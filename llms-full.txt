@@ -2,7 +2,10 @@
 
 ## Overview
 scraper-mcp is a FastMCP 3.2 fleet server that monitors MCP repo grades
-across ToolBench (Arcade.dev), Glama.ai, and LobeHub Marketplace.
+across ToolBench (Arcade.dev, primary) and LobeHub Marketplace (presence probe).
+Glama.ai is disabled pending a parser rewrite after their 2026-07 site redesign.
+Grades and overall scores are owner-verified and trustworthy. Per-dimension scores are
+currently withheld by a reconciliation guard, so rank by overall score only.
 Replaces deprecated toolbench-mcp.
 
 ## Ports
@@ -84,7 +87,7 @@ webapp (Vite React, :10999)
 
 platforms/
   toolbench.arcade.dev  — scraper using httpx + HTML parsing
-  glama.ai              — scraper using httpx + HTML parsing
+  glama.ai              — scraper using httpx + HTML parsing (DISABLED, needs rewrite)
   lobehub.com           — scraper using httpx + JSON API
 ```
 

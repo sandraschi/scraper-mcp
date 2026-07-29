@@ -1,5 +1,40 @@
 # Changelog
 
+## 2026-07-29 — Review 2: docs corrected, dimension parser bug root-caused (OPEN)
+
+Docs only, no code change. Corrects claims that were too strong in the previous entry.
+
+**KNOWN ISSUE (open): per-dimension scores are unusable.** `_extract_pct` anchors on
+`text.find(label)`, which lands on the methodology blurb at the top of every assessment page
+("Scored on Definition Quality (50%), Protocol Readiness (20%), and Supportability (30%)") rather
+than on the score row. The forward scan then skips every `%`-suffixed number and returns the first
+bare score it meets, which is always Definition's, so all three dimensions come back identical. On
+the committed fixture, true values 79/80/38 parse as 79/79/79.
+
+`_dimensions_reconcile` correctly rejects the result, so nothing wrong is persisted, but that means
+there is currently **no dimension data at all**. The previous entry's "Fix dimension reconciliation
+(BLOCKER 2)" added the guard, not the fix.
+
+The test suite does not catch this: all value assertions run on synthetic single-occurrence strings,
+and the only test against the real fixture asserts key presence rather than values.
+
+Fix: anchor on the per-row method strings (`Pattern-based scoring`, `Static analysis`,
+`GitHub signals`), which occur exactly once each. Do not use `rfind`. Add a test asserting exactly
+(79.0, 80.0, 38.0) from the fixture.
+
+**Consumers must rank by `overallScore` only** until this lands. Grades and overall scores are
+API-sourced and owner-verified, and are trustworthy.
+
+Also corrected in docs:
+- Fleet coverage is 22/150 with mean 32.8, not the earlier 52/150 with mean 40.7. Thirty of those
+  52 rows were other people's servers.
+- Fleet denominator is still unreconciled (150 registry vs 211 on disk vs ~128 public), so coverage
+  percentages should not be quoted.
+- Only 22 fleet repos are indexed at all, so the F-list is 18, not 37. Submitting an unfixed repo
+  converts "not listed" into "publicly graded F", so fix before submitting the remainder.
+- README, SPEC, AGENTS.md and llms.txt updated for the Glama disablement and the `scraper_reassess`
+  no-op.
+
 ## 2026-07-29 — Opus review: owner verification, reconciliation, webapp fix
 
 - Fix owner verification (BLOCKER 1): `_find_candidates` collects all name matches,
