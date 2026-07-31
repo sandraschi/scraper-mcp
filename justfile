@@ -28,10 +28,10 @@ e2e:
     Set-Location '{{justfile_directory()}}\webapp'; npx playwright test
 
 lint:
-    ruff check src/ tests/
+    uv run ruff check src/ tests/
 
 fix:
-    ruff check src/ tests/ --fix
+    uv run ruff check src/ tests/ --fix
 
 dev:
     uv run python -m scraper_mcp.server --http --port 10998
@@ -55,3 +55,9 @@ daily-refresh:
 # Register daily refresh Windows scheduled task
 register-daily-refresh:
     powershell.exe -NoProfile -File "{{justfile_directory()}}\scripts\register-daily-refresh.ps1"
+
+# Bootstrap: install dev deps + pre-commit hook
+bootstrap:
+    uv sync --group dev
+    uv run pre-commit install
+    Write-Host "Pre-commit hooks installed." -ForegroundColor Green
