@@ -36,7 +36,7 @@ fix:
 dev:
     uv run python -m scraper_mcp.server --http --port 10998
 
-# ── Tauri Native ───────────────────────────────────────────────────────────────
+# --- Tauri Native ---
 
 # Certify: run all verification gates
 certify: lint
