@@ -33,11 +33,11 @@ def toolbench_rescore() -> str:
 GRADE_HELP_MD = """# scraper-mcp Grade Help
 
 ## ToolBench (arcade.dev)
-- **A+** (90-100): Excellent — all criteria met
-- **A** (80-89): Strong — minor gaps
-- **B** (70-79): Good — meets most criteria
-- **C** (60-69): Fair — needs work
-- **D-F** (<60): Poor — significant gaps
+- **A+** (90-100): Excellent - all criteria met
+- **A** (80-89): Strong - minor gaps
+- **B** (70-79): Good - meets most criteria
+- **C** (60-69): Fair - needs work
+- **D-F** (<60): Poor - significant gaps
 
 ## Glama.ai
 - **A** (>=3.5): Excellent docstrings
@@ -46,7 +46,7 @@ GRADE_HELP_MD = """# scraper-mcp Grade Help
 - **D-F** (<2.0): Needs significant docstring improvement
 
 ## LobeHub
-- Presence only — no letter grades
+- Presence only - no letter grades
 """
 
 

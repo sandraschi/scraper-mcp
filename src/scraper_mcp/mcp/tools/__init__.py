@@ -1,4 +1,4 @@
-"""MCP tools package — portmanteau imports for FastMCP registration."""
+"""MCP tools package - portmanteau imports for FastMCP registration."""
 
 from . import autofix, cards, coverage, guide, helptool, improvement, platforms, prompts, shutdown, status, suggest
 

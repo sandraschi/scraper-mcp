@@ -1,4 +1,4 @@
-"""Improvement plan tool — generates prioritized fix list from ToolBench criticisms."""
+"""Improvement plan tool - generates prioritized fix list from ToolBench criticisms."""
 
 from typing import Annotated
 
@@ -10,7 +10,7 @@ from ..registry import mcp
 
 FLEET_OWNER = "sandraschi"
 
-# Known fleet exceptions — criteria we explicitly disagree with
+# Known fleet exceptions - criteria we explicitly disagree with
 FLEET_EXCEPTIONS = {
     "portmanteau": [
         "single-responsibility",
@@ -28,18 +28,18 @@ FLEET_EXCEPTIONS = {
 
 # Pattern mapping from ToolBench issue text → fleet standard
 FLEET_STANDARD_MAP = {
-    "constrained-input": "TOOL_DESIGN_STANDARDS.md §5.1 — Use Literal/enums + Annotated Field for params",
-    "response-shaper": "TOOL_DESIGN_STANDARDS.md §4.4 — Document return shape with named keys",
-    "recovery-guide": "TOOL_DESIGN_STANDARDS.md §6 — Add structured errors + recovery_options",
-    "param-validation-rules": "TOOL_DESIGN_STANDARDS.md §5.1 — Add Field(ge=/le=/description=)",
-    "tool-description": "TOOL_DESIGN_STANDARDS.md §3 — Use gold-standard docstring template",
-    "confirmation-request": "TOOL_DESIGN_STANDARDS.md §5 — Add confirm/dry-run for destructive ops",
-    "tool-name": "TOOL_DESIGN_STANDARDS.md (§5 naming row) — Use verb-led snake_case names",
-    "output-schema": "TOOL_DESIGN_STANDARDS.md §7 — Add FastMCP output_schema= for stable shapes",
-    "annotations": "TOOL_DESIGN_STANDARDS.md §9 — Set READ_ONLY/MUTATING/DESTRUCTIVE annotations",
-    "pagination": "TOOL_DESIGN_STANDARDS.md §5 — Add limit + offset or cursor pagination",
-    "error-handling": "TOOL_DESIGN_STANDARDS.md §6 — Add error_type + suggestions in failure dicts",
-    "parameter-semantics": "TOOL_DESIGN_STANDARDS.md §5.1 — Document param defaults, ranges, interactions",
+    "constrained-input": "TOOL_DESIGN_STANDARDS.md §5.1 - Use Literal/enums + Annotated Field for params",
+    "response-shaper": "TOOL_DESIGN_STANDARDS.md §4.4 - Document return shape with named keys",
+    "recovery-guide": "TOOL_DESIGN_STANDARDS.md §6 - Add structured errors + recovery_options",
+    "param-validation-rules": "TOOL_DESIGN_STANDARDS.md §5.1 - Add Field(ge=/le=/description=)",
+    "tool-description": "TOOL_DESIGN_STANDARDS.md §3 - Use gold-standard docstring template",
+    "confirmation-request": "TOOL_DESIGN_STANDARDS.md §5 - Add confirm/dry-run for destructive ops",
+    "tool-name": "TOOL_DESIGN_STANDARDS.md (§5 naming row) - Use verb-led snake_case names",
+    "output-schema": "TOOL_DESIGN_STANDARDS.md §7 - Add FastMCP output_schema= for stable shapes",
+    "annotations": "TOOL_DESIGN_STANDARDS.md §9 - Set READ_ONLY/MUTATING/DESTRUCTIVE annotations",
+    "pagination": "TOOL_DESIGN_STANDARDS.md §5 - Add limit + offset or cursor pagination",
+    "error-handling": "TOOL_DESIGN_STANDARDS.md §6 - Add error_type + suggestions in failure dicts",
+    "parameter-semantics": "TOOL_DESIGN_STANDARDS.md §5.1 - Document param defaults, ranges, interactions",
 }
 
 SEVERITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
@@ -65,15 +65,15 @@ def _classify_issue(issue_text: str) -> list[str]:
     if not matched:
         # Generic fallback
         if "description" in lower or "docstring" in lower:
-            matched.append("TOOL_DESIGN_STANDARDS.md §3 — Improve docstring quality")
+            matched.append("TOOL_DESIGN_STANDARDS.md §3 - Improve docstring quality")
         elif "schema" in lower or "parameter" in lower or "param" in lower:
-            matched.append("TOOL_DESIGN_STANDARDS.md §5.1 — Add parameter constraints")
+            matched.append("TOOL_DESIGN_STANDARDS.md §5.1 - Add parameter constraints")
         elif "output" in lower or "return" in lower:
-            matched.append("TOOL_DESIGN_STANDARDS.md §4.4 — Document return format")
+            matched.append("TOOL_DESIGN_STANDARDS.md §4.4 - Document return format")
         elif "error" in lower or "recovery" in lower:
-            matched.append("TOOL_DESIGN_STANDARDS.md §6 — Add error handling guidance")
+            matched.append("TOOL_DESIGN_STANDARDS.md §6 - Add error handling guidance")
         elif "name" in lower:
-            matched.append("TOOL_DESIGN_STANDARDS.md (§5 naming row) — Rename for verb-led pattern")
+            matched.append("TOOL_DESIGN_STANDARDS.md (§5 naming row) - Rename for verb-led pattern")
         else:
             matched.append("Refer to TOOL_DESIGN_STANDARDS.md for guidance")
     return matched

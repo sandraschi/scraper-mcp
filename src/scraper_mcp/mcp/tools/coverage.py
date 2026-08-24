@@ -1,4 +1,4 @@
-"""Coverage & grade tools — portmanteau for fleet repo monitoring."""
+"""Coverage & grade tools - portmanteau for fleet repo monitoring."""
 
 from typing import Annotated
 

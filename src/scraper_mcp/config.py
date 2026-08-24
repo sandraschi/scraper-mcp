@@ -1,4 +1,4 @@
-"""scraper-mcp configuration — Pydantic settings."""
+"""scraper-mcp configuration - Pydantic settings."""
 
 from pydantic_settings import BaseSettings
 

@@ -1,4 +1,4 @@
-"""Self-termination tool — allows agents to shut down the server gracefully."""
+"""Self-termination tool - allows agents to shut down the server gracefully."""
 
 import os
 import signal
@@ -20,4 +20,4 @@ async def scraper_shutdown() -> dict:
     await scraper_shutdown()
     """
     os.kill(os.getpid(), signal.SIGTERM)
-    return {"success": True, "message": "SIGTERM sent — server shutting down."}
+    return {"success": True, "message": "SIGTERM sent - server shutting down."}

@@ -1,4 +1,4 @@
-"""Analytics store — in-memory grade history with SQLite persistence for delta tracking."""
+"""Analytics store - in-memory grade history with SQLite persistence for delta tracking."""
 
 import json
 import sqlite3

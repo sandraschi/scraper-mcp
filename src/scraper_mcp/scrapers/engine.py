@@ -1,11 +1,11 @@
-"""Modular scraper engine — HTTP parsers for ToolBench, Glama, LobeHub.
+"""Modular scraper engine - HTTP parsers for ToolBench, Glama, LobeHub.
 
 Each scraper is a pluggable class with a standard interface:
-    - id: str — platform identifier (toolbench, glama, lobehub)
-    - name: str — human-readable platform name
-    - fetch_coverage(owner, repos) -> list[dict] — discover repos on platform
-    - fetch_grade(owner, repo) -> dict | None — get grade for one repo
-    - request_reassess(owner, repo) -> bool — trigger rescoring
+    - id: str - platform identifier (toolbench, glama, lobehub)
+    - name: str - human-readable platform name
+    - fetch_coverage(owner, repos) -> list[dict] - discover repos on platform
+    - fetch_grade(owner, repo) -> dict | None - get grade for one repo
+    - request_reassess(owner, repo) -> bool - trigger rescoring
 """
 
 from __future__ import annotations
@@ -119,7 +119,7 @@ async def _scan_repos(
 
 
 class ToolBenchScraper(BaseScraper):
-    """ToolBench by Arcade.dev — per-repo search via ?q=<repo>."""
+    """ToolBench by Arcade.dev - per-repo search via ?q=<repo>."""
 
     id = "toolbench"
     name = "ToolBench (Arcade.dev)"
@@ -159,7 +159,7 @@ class ToolBenchScraper(BaseScraper):
 
 
 class GlamaScraper(BaseScraper):
-    """Glama.ai — score page scraper.
+    """Glama.ai - score page scraper.
 
     NOTE (2026-07-29): Glama completely redesigned their site. The /score page
     no longer has TDQS dimensions, X/5 scores, or parseable grade data. The
@@ -172,15 +172,31 @@ class GlamaScraper(BaseScraper):
     base_url = "https://glama.ai"
 
     async def fetch_grade(self, owner: str, repo: str) -> GradeRow | None:
-        log.warning("Glama scraper disabled — site redesign (2026-07). No TDQS/score data available.")
+        log.warning("Glama scraper disabled - site redesign (2026-07). No TDQS/score data available.")
         return None
 
     async def request_reassess(self, owner: str, repo: str) -> bool:
         return False
 
 
+def _fetch_with_obscura(url: str, dump: str = "html") -> str | None:
+    """Synchronous Obscura stealth fetch helper for platform scrapers."""
+    try:
+        import sys
+        from pathlib import Path
+        obscura_mcp_path = Path("D:/Dev/repos/obscura-mcp/src")
+        if obscura_mcp_path.exists() and str(obscura_mcp_path) not in sys.path:
+            sys.path.insert(0, str(obscura_mcp_path))
+
+        from obscura_mcp.server import fetch_with_obscura
+        return fetch_with_obscura(url, dump=dump, stealth=True, timeout=35)
+    except Exception as e:
+        log.warning("Obscura fetch fallback failed for %s: %s", url, e)
+        return None
+
+
 class LobeHubScraper(BaseScraper):
-    """LobeHub MCP marketplace — per-repo page probe (no public grades API)."""
+    """LobeHub MCP marketplace - per-repo page probe (no public grades API)."""
 
     id = "lobehub"
     name = "LobeHub Marketplace"
@@ -189,21 +205,32 @@ class LobeHubScraper(BaseScraper):
     async def fetch_grade(self, owner: str, repo: str) -> GradeRow | None:
         url = f"{self.base_url}/mcp/{owner}/{repo}"
         headers = {"User-Agent": _LobeHub_USER_AGENT}
+        text = None
         async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
-            r = await client.get(url, headers=headers)
-            if r.status_code != 200:
-                return None
-            text = r.text.lower()
-            if owner.lower() not in text or repo.lower() not in text:
-                return None
-            return _normalize_row(
-                repo,
-                grade="N/A",
-                score=None,
-                url=url,
-                status="indexed",
-                tools=0,
-            )
+            try:
+                r = await client.get(url, headers=headers)
+                if r.status_code == 200:
+                    text = r.text.lower()
+            except Exception as e:
+                log.warning("LobeHub HTTP fetch failed for %s: %s — attempting Obscura fallback", url, e)
+
+        if text is None:
+            # Fallback to Obscura stealth rendering
+            text = await asyncio.to_thread(_fetch_with_obscura, url, "html")
+            if text:
+                text = text.lower()
+
+        if not text or owner.lower() not in text or repo.lower() not in text:
+            return None
+
+        return _normalize_row(
+            repo,
+            grade="N/A",
+            score=None,
+            url=url,
+            status="indexed",
+            tools=0,
+        )
 
     async def request_reassess(self, owner: str, repo: str) -> bool:
         return False

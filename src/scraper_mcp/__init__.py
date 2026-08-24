@@ -1,1 +1,1 @@
-"""scraper-mcp — Multi-platform MCP server grade aggregator."""
+"""scraper-mcp - Multi-platform MCP server grade aggregator."""

@@ -1,4 +1,4 @@
-"""scraper_help — multi-level help with basic, advanced, and platform detail."""
+"""scraper_help - multi-level help with basic, advanced, and platform detail."""
 
 from typing import Annotated, Literal
 
@@ -11,15 +11,15 @@ BASIC = """## scraper-mcp Help (Basic)
 This server monitors fleet MCP repo grades across **ToolBench**, **Glama.ai**, and **LobeHub**.
 
 ### Quick commands
-- `scraper_matrix()` — See all repos and their grades across platforms
-- `scraper_refresh()` — Pull fresh grades from all platforms
-- `scraper_repo(repo="email-mcp")` — Details for one repo
-- `scraper_improve_suggest(repo="email-mcp")` — Get concrete code fixes
+- `scraper_matrix()` - See all repos and their grades across platforms
+- `scraper_refresh()` - Pull fresh grades from all platforms
+- `scraper_repo(repo="email-mcp")` - Details for one repo
+- `scraper_improve_suggest(repo="email-mcp")` - Get concrete code fixes
 
 ### Grade meaning
 - **ToolBench**: A+ (90-100) to F (<50). Weighs definition quality 50%, protocol 20%, supportability 30%.
 - **Glama**: A (>=3.5) to F (<1.0). 100% docstring quality. 60% mean + 40% minimum across tools.
-- **LobeHub**: Presence only — no grades.
+- **LobeHub**: Presence only - no grades.
 """
 
 ADVANCED = """## scraper-mcp Help (Advanced)
@@ -44,10 +44,10 @@ ADVANCED = """## scraper-mcp Help (Advanced)
 - **Stdio-only penalty**: ToolBench caps protocol score at 50 for stdio servers. Dual transport (stdio+HTTP) can reach 100.
 
 ### Improvement workflow
-1. `scraper_improve_suggest(repo="...")` — get concrete fixes
+1. `scraper_improve_suggest(repo="...")` - get concrete fixes
 2. Apply fixes in the repo
-3. `scraper_refresh(repo="...")` — verify grades updated
-4. `scraper_reassess(repo="...", platform="toolbench")` — request rescore
+3. `scraper_refresh(repo="...")` - verify grades updated
+4. `scraper_reassess(repo="...", platform="toolbench")` - request rescore
 """
 
 PLATFORM_DETAIL = """## Platform Detail
@@ -63,11 +63,11 @@ PLATFORM_DETAIL = """## Platform Detail
 - **Methodology**: Tool Definition Quality 70% (6 dimensions) + Server Coherence 30%
 - **Grades**: A (>=3.5), B (>=3.0), C (>=2.0), D (>=1.0), F (<1.0)
 - **6 TDQS dims**: Purpose 25%, Usage 20%, Behavior 20%, Params 15%, Conciseness 10%, Completeness 10%
-- **Formula**: 60% mean + 40% minimum across all tools — one bad tool pulls score down
+- **Formula**: 60% mean + 40% minimum across all tools - one bad tool pulls score down
 - **Rescore**: Click "Sync Server" on glama.ai admin page (auto-rescans daily)
 
 ### LobeHub (lobehub.com)
-- **Grades**: None — presence only
+- **Grades**: None - presence only
 - **Purpose**: Discoverability in open-source MCP marketplace
 """
 

@@ -1,4 +1,4 @@
-"""scraper_improve_suggest — generates concrete code-level fix suggestions from ToolBench findings."""
+"""scraper_improve_suggest - generates concrete code-level fix suggestions from ToolBench findings."""
 
 import os
 from typing import Annotated
@@ -179,7 +179,7 @@ return {
         "code": """# Before (generic):
 \"\"\"Network management operations.\"\"\"
 
-# After (actionable — tells the agent when and why):
+# After (actionable - tells the agent when and why):
 \"\"\"Manage tailnet DNS, routes, and subnet settings.
 
 Use this when you need to configure DNS nameservers, add or remove
@@ -335,7 +335,7 @@ async def scraper_improve_suggest(
     """Generate concrete, copy-paste-able code fixes from ToolBench criticisms.
 
     Analyzes ToolBench assessment issues and per-tool risk scores, then generates
-    specific code snippets for each fix — Literal constraints, return docs,
+    specific code snippets for each fix - Literal constraints, return docs,
     error handling, pagination, annotations, naming, etc.
 
     Fleet exceptions (portmanteau/atomic-tool complaints) are filtered out.

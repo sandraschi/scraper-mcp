@@ -1,4 +1,4 @@
-"""Prefab UI cards for list/status tools — @mcp.tool(app=True)."""
+"""Prefab UI cards for list/status tools - @mcp.tool(app=True)."""
 
 from typing import Annotated, Any
 

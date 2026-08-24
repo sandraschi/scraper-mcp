@@ -1,6 +1,6 @@
-"""Glama score page scraper — parses per-tool TDQS dimensions from the /score page.
+"""Glama score page scraper - parses per-tool TDQS dimensions from the /score page.
 
-Ported from glama-status-mcp's scraper.py — fetches the HTML score page
+Ported from glama-status-mcp's scraper.py - fetches the HTML score page
 and extracts per-tool grades, 6 TDQS dimension scores, and metadata.
 """
 

@@ -1,4 +1,4 @@
-"""toolbench_guide — ported from deprecated toolbench-mcp."""
+"""toolbench_guide - ported from deprecated toolbench-mcp."""
 
 from __future__ import annotations
 
@@ -57,7 +57,7 @@ async def toolbench_guide(
             "success": True,
             "result": (
                 "Arcade.dev ships an MCP runtime / integrations platform (Gmail, Slack, GitHub, …). "
-                "Optional when you need hosted tools with Arcade auth — separate from ToolBench grading."
+                "Optional when you need hosted tools with Arcade auth - separate from ToolBench grading."
             ),
             "recommendations": [
                 "https://docs.arcade.dev/en/get-started/mcp-clients",

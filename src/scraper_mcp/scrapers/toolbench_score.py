@@ -1,4 +1,4 @@
-"""ToolBench assessment page scraper — parses detailed report from /tools/{id}.
+"""ToolBench assessment page scraper - parses detailed report from /tools/{id}.
 
 ToolBench assessment pages ARE server-rendered (can be fetched with plain HTTP).
 The API at /api/servers?q=<repo> returns the server ID, then /tools/{id}
@@ -18,7 +18,7 @@ TOOLBENCH_BASE = "https://toolbench.arcade.dev"
 _USER_AGENT = "scraper-mcp/0.1 (fleet monitor; polite daily scrape)"
 
 # In-memory cache: server_id -> GitHub owner, populated on first page fetch.
-# Resets on process restart (acceptable — avoids stale or cross-repo leaks).
+# Resets on process restart (acceptable - avoids stale or cross-repo leaks).
 _server_owner_cache: dict[str, str] = {}
 
 # Tolerance for dimension-score weighted-sum reconciliation.
@@ -100,7 +100,7 @@ def _find_candidates(servers: list[dict], repo: str) -> list[dict]:
     The API returns every name collision across every author (observed: 3
     different "scraper-mcp" servers by different owners).  This function
     returns all of them.  Owner verification (via assessment page HTML)
-    happens in `fetch_grade_with_details` — never guess which one is ours.
+    happens in `fetch_grade_with_details` - never guess which one is ours.
 
     Matching strategy (in order):
     1. Exact name match (case-insensitive), sorted SCORED first.
@@ -113,7 +113,7 @@ def _find_candidates(servers: list[dict], repo: str) -> list[dict]:
     if not servers:
         return []
 
-    # 1. Exact name matches — prefer SCORED
+    # 1. Exact name matches - prefer SCORED
     exact = [s for s in servers if s.get("name", "").lower() == repo_lower]
     if not exact:
         # 2. full_name suffix
@@ -299,9 +299,9 @@ def _extract_number(text: str) -> float:
 async def fetch_grade_with_details(owner: str, repo: str) -> dict[str, Any] | None:
     """Two-stage fetch: resolve server by owner, scrape + reconcile.
 
-    Stage 1 — API call: GET /api/servers?q=<repo>. Collect all name-matching
+    Stage 1 - API call: GET /api/servers?q=<repo>. Collect all name-matching
     candidates (ToolBench returns every author's server with the same name).
-    Stage 2 — Owner verification: for each candidate, fetch the assessment
+    Stage 2 - Owner verification: for each candidate, fetch the assessment
     page and extract the GitHub owner from the page header. Accept only the
     candidate whose owner matches the fleet owner. Cache results in
     ``_server_owner_cache`` so this costs one page fetch per server per
@@ -338,7 +338,7 @@ async def fetch_grade_with_details(owner: str, repo: str) -> dict[str, Any] | No
         if not sid:
             continue
 
-        # Cache hit — skip verification page fetch
+        # Cache hit - skip verification page fetch
         cached_owner = _server_owner_cache.get(sid)
         if cached_owner:
             if cached_owner.lower() == owner.lower():
@@ -347,7 +347,7 @@ async def fetch_grade_with_details(owner: str, repo: str) -> dict[str, Any] | No
                 break
             continue
 
-        # Cache miss — fetch the assessment page to verify owner
+        # Cache miss - fetch the assessment page to verify owner
         page_url = f"{TOOLBENCH_BASE}/tools/{sid}"
         headers = {"User-Agent": _USER_AGENT, "Accept": "text/html"}
         async with httpx.AsyncClient(timeout=30, follow_redirects=True, http2=False) as client:
@@ -377,7 +377,7 @@ async def fetch_grade_with_details(owner: str, repo: str) -> dict[str, Any] | No
             overall = detail.get("score") or api_data.get("overallScore")
             if not _dimensions_reconcile(defn, proto, supp, overall):
                 log.warning(
-                    "%s/%s: dims (%s, %s, %s) fail reconciliation against overall=%s — storing as None",
+                    "%s/%s: dims (%s, %s, %s) fail reconciliation against overall=%s - storing as None",
                     owner,
                     repo,
                     defn,

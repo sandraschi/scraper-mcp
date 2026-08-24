@@ -1,4 +1,4 @@
-"""Platform listing tool — discover available and pluggable grade platforms."""
+"""Platform listing tool - discover available and pluggable grade platforms."""
 
 from typing import Annotated
 
@@ -15,7 +15,7 @@ async def scraper_platforms(
 ) -> dict:
     """List available grade platforms and their capabilities.
 
-    Platforms can be plugged in modularly — add new scrapers by subclassing BaseScraper.
+    Platforms can be plugged in modularly - add new scrapers by subclassing BaseScraper.
 
     ## Return Format
     {"success": bool, "message": str, "data": {"platforms": [{"id": str, "name": str, "reassess_supported": bool}]}}

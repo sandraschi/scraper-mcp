@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-08-24 — Obscura Stealth Integration
+
+- **Obscura Stealth Rendering Fallback**: Added `_fetch_with_obscura()` helper in `engine.py` and integrated stealth fallback into `LobeHubScraper.fetch_grade()` when HTTP requests encounter anti-bot protection.
+
 ## 2026-07-29 — Review 2: docs corrected, dimension parser bug root-caused (OPEN)
 
 Docs only, no code change. Corrects claims that were too strong in the previous entry.

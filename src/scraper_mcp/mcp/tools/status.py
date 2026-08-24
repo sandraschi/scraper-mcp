@@ -1,4 +1,4 @@
-"""scraper_status — server health, last refresh, platform status."""
+"""scraper_status - server health, last refresh, platform status."""
 
 from datetime import UTC, datetime
 

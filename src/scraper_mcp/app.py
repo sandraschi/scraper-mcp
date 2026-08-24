@@ -20,7 +20,7 @@ _startup = time.time()
 
 
 def build_app() -> FastAPI:
-    from scraper_mcp.mcp import tools as _tools  # noqa: F401 — register MCP tools
+    from scraper_mcp.mcp import tools as _tools  # noqa: F401 - register MCP tools
     from scraper_mcp.mcp.registry import mcp
 
     mcp_http = mcp.http_app(path="/")
@@ -278,7 +278,7 @@ def build_app() -> FastAPI:
             "fleet_repos": fleet_total,
             "duration_ms": duration_ms,
             "message": (
-                f"Scanned {fleet_total} fleet repos on {len(SCRAPERS)} platforms — "
+                f"Scanned {fleet_total} fleet repos on {len(SCRAPERS)} platforms - "
                 f"{total} remote hit(s) (ToolBench: {per_platform.get('toolbench', 0)}, "
                 f"Glama: {per_platform.get('glama', 0)}, LobeHub: {per_platform.get('lobehub', 0)})."
             ),

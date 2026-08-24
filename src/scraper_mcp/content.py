@@ -29,7 +29,7 @@ RESCORING_STEPS = """
 GLAMA_VS_TOOLBENCH = """
 Glama (glama.ai) and similar directories are useful for discovery; scores can feel opaque.
 ToolBench publishes methodology weights, Improve-page ecosystem stats, per-server report cards,
-and links to Arcade Agentic Tool Patterns — usually more actionable for maintainers.
+and links to Arcade Agentic Tool Patterns - usually more actionable for maintainers.
 Use ToolBench for backlog triage; use Arcade's own MCP only when you need their hosted integrations.
 """
 
@@ -39,7 +39,7 @@ def help_text() -> str:
         "scraper-mcp is the fleet grade aggregator (ToolBench + Glama + LobeHub) and "
         "inherits toolbench-mcp's rescoring guide plus ToolBench Playwright page archiver. "
         "It does not call Arcade APIs; the optional scraper under scripts/ is for maintainers "
-        "archiving their own public assessment pages — read Arcade terms, use rate limits, "
+        "archiving their own public assessment pages - read Arcade terms, use rate limits, "
         "prefer scrape+urls.txt over broad discover. Arcade's product MCP (integrations runtime) "
         "is separate from ToolBench grading."
     )
