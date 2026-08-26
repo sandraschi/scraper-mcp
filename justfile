@@ -46,7 +46,7 @@ certify: lint
 build-native:
     Set-Location '{{justfile_directory()}}\native'
     $env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"
-    npx @tauri-apps/cli build
+    pwsh -NoProfile -File '{{justfile_directory()}}\native\build.ps1'
 
 # Daily refresh: pull grades from all platforms and alert on drops
 daily-refresh:
