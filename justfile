@@ -16,10 +16,10 @@ start-backend:
     uv run python -m scraper_mcp.server --http --port 10998
 
 start-webapp:
-    cd webapp && npm run dev
+    cd webapp; npm run dev
 
 build-webapp:
-    cd webapp && npm install && npm run build
+    cd webapp; npm install; npm run build
 
 test:
     uv run pytest tests/ -v
