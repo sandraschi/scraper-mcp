@@ -236,7 +236,7 @@ def build_router() -> APIRouter:
     async def clear_output(subdir: str | None = None) -> dict[str, Any]:
         d = _resolve_out_dir(subdir)
         if d.exists():
-            shutil.rmtree(d)
+            await asyncio.to_thread(shutil.rmtree, d)
         d.mkdir(parents=True, exist_ok=True)
         return {"cleared": str(d)}
 

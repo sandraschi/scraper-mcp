@@ -8,6 +8,7 @@ Each fix is scoped to be safe - docstring changes only, no behavioral changes.
 """
 
 import ast
+import asyncio
 import re
 import shutil
 from datetime import datetime
@@ -161,7 +162,7 @@ async def apply_range_constraints(repo_path: Path) -> dict:
             continue
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         bak = pyf.with_suffix(f".{ts}.bak")
-        shutil.copy2(str(pyf), str(bak))
+        await asyncio.to_thread(shutil.copy2, str(pyf), str(bak))
         changed = False
         for item in items:
             if _apply_range_param(pyf, item["parameter"]):
@@ -263,7 +264,7 @@ async def apply_docstring_expansions(
             continue
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         bak = pyf.with_suffix(f".{ts}.bak")
-        shutil.copy2(str(pyf), str(bak))
+        await asyncio.to_thread(shutil.copy2, str(pyf), str(bak))
         any_change = False
         for item in items:
             fname = item["function"]
