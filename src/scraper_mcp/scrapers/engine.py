@@ -159,12 +159,14 @@ class ToolBenchScraper(BaseScraper):
 
 
 class GlamaScraper(BaseScraper):
-    """Glama.ai - score page scraper.
+    """Glama.ai - server page scraper (TDQS moved off the old /score sub-page).
 
-    NOTE (2026-07-29): Glama completely redesigned their site. The /score page
-    no longer has TDQS dimensions, X/5 scores, or parseable grade data. The
-    old scraper in glama_score.py is broken for the current layout.
-    fetch_grade returns None (not indexed) until a new parser is written.
+    NOTE (2026-07-29): Glama redesigned their site; the dedicated /score page
+    started 302-redirecting to the main server page and the old <button
+    class="ULqjq"> per-tool markup stopped existing, breaking this scraper.
+    NOTE (2026-09-15): re-verified against live HTML and rewrote the parser in
+    glama_score.py for the current <details id="tool_name"> layout - see that
+    module's docstring for the full structural diff. Re-enabled below.
     """
 
     id = "glama"
@@ -172,10 +174,36 @@ class GlamaScraper(BaseScraper):
     base_url = "https://glama.ai"
 
     async def fetch_grade(self, owner: str, repo: str) -> GradeRow | None:
-        log.warning("Glama scraper disabled - site redesign (2026-07). No TDQS/score data available.")
-        return None
+        from scraper_mcp.scrapers.glama_score import scrape_score_page
+
+        detail = await scrape_score_page(owner, repo)
+        if not detail:
+            return None
+        return _normalize_row(
+            repo,
+            grade=detail.get("grade", "?"),
+            score=detail.get("score"),
+            url=detail.get("url", f"{self.base_url}/mcp/servers/{owner}/{repo}"),
+            status=detail.get("status", "unknown"),
+            tools=detail.get("tools", 0),
+            tdqs_mean=detail.get("tdqs_mean"),
+            tdqs_min=detail.get("tdqs_min"),
+            tdqs_grade=detail.get("tdqs_grade"),
+            coherence_grade=detail.get("coherence_grade"),
+            maintenance_grade=detail.get("maintenance_grade"),
+            tool_details=detail.get("tool_details"),
+            latest_release=detail.get("latest_release"),
+            profile_completion=detail.get("profile_completion"),
+        )
 
     async def request_reassess(self, owner: str, repo: str) -> bool:
+        log.warning(
+            "request_reassess(%s/%s): Glama has no manual reassess endpoint. "
+            "Grades update automatically on every commit/rebuild and at least "
+            "daily via Glama's own sync - no action needed to trigger a refresh.",
+            owner,
+            repo,
+        )
         return False
 
 

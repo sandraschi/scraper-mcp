@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-09-15 — Glama scraper re-enabled after site redesign
+
+Re-wrote `glama_score.py`'s per-tool parser and re-enabled `GlamaScraper.fetch_grade` (was
+returning `None` unconditionally since the 2026-07-29 redesign broke it).
+
+- **Root cause confirmed by live fetch**: the dedicated `/score` sub-page now 302-redirects to
+  the main server page, and TDQS moved there. Per-tool entries changed from `<button
+  class="ULqjq">` to `<details id="{tool_name}">`, with each tool's TDQS mini-section nested
+  inside the same `<details>` instead of a following sibling `<div>`.
+- **Added**: server-level overall TDQS extraction via `<div id="tool-definition-quality">`
+  (grade, mean score, `scored_at` timestamp) — previously only per-tool grades were scraped.
+- **Changed**: `tdqs_min` is now derived from the actual minimum per-tool score instead of
+  scraping a "Lowest: X/5" sentence that no longer exists on the redesigned page.
+- **Verified**: 5 new regression tests (`tests/test_glama_parser.py`) against a committed live
+  HTML fixture (`tests/fixtures/glama/`), all passing; full suite green (48 passed); `ruff check`
+  clean. Confirmed against `sandraschi/virtualization-mcp`: 9 tools, grades A/B/C, server TDQS
+  B (3.4 mean / 2.4 min) — matches an independent manual check of the same live page.
+- **request_reassess** now explains that Glama re-scans automatically on every commit/rebuild
+  and at least daily, rather than silently returning `False` with no explanation.
+- The `czikZZ` (dimension score) and `kIIaya` (grade badge) CSS classes survived the redesign
+  unchanged — only the per-tool container markup changed. Class names are Glama's build-hashed
+  CSS-module output and will drift again; re-verify against a live fetch before assuming data
+  disappeared if this breaks again.
+
 ## 2026-08-24 — Obscura Stealth Integration
 
 - **Obscura Stealth Rendering Fallback**: Added `_fetch_with_obscura()` helper in `engine.py` and integrated stealth fallback into `LobeHubScraper.fetch_grade()` when HTTP requests encounter anti-bot protection.

@@ -1,7 +1,26 @@
-"""Glama score page scraper - parses per-tool TDQS dimensions from the /score page.
+"""Glama score page scraper - parses per-tool TDQS dimensions from the server page.
 
-Ported from glama-status-mcp's scraper.py - fetches the HTML score page
-and extracts per-tool grades, 6 TDQS dimension scores, and metadata.
+Rewritten 2026-09-15 for Glama's 2026-07 site redesign. The dedicated `/score`
+sub-page now 302-redirects to the main server page (`/mcp/servers/{owner}/{repo}`),
+and TDQS data moved there. Verified against live HTML on 2026-09-15:
+
+- Per-tool entries are `<details id="{tool_name}">` (was `<button class="ULqjq">`
+  pre-redesign) whose `<summary>` holds the tool-name `<a href=".../tools/...">`
+  and a grade badge (`<span class="...kIIaya...">` with bare-letter text). Each
+  tool's own TDQS mini-section (overall score + 6 dimension cards) lives nested
+  inside the same `<details>`, not as a following sibling `<div>`.
+- The server-level overall TDQS lives in `<div id="tool-definition-quality">`,
+  with an `<h2>TDQS</h2>` next to a grade badge + `X/5.0` score, plus a
+  "Scored <date> across N tools" line giving a real freshness timestamp.
+- The `czikZZ` (dimension score span) and `gMBAYo` (dimension card wrapper)
+  classes survived the redesign unchanged; only the per-tool container markup
+  changed. The old "Average X/5 ... Lowest: X/5" summary text is gone - overall
+  mean/min are now derived from the server-level score plus the collected
+  per-tool scores instead of scraped from that sentence.
+
+Class names are Glama's build-hashed CSS-module output and WILL drift again on
+their next redesign - if this breaks, re-verify against a live page fetch
+before assuming the site removed the data outright (it moved once already).
 """
 
 import re
@@ -48,7 +67,16 @@ async def scrape_score_page(owner: str, repo: str, slug: str = "") -> dict[str, 
         except Exception:
             return None
 
-    soup = BeautifulSoup(resp.text, "lxml")
+    return parse_score_html(resp.text, url=url)
+
+
+def parse_score_html(html: str, url: str = "") -> dict[str, Any]:
+    """Parse a Glama server-page HTML string into the score dict.
+
+    Split out from scrape_score_page so tests can run against a committed
+    HTML fixture with no live HTTP call - see tests/test_glama_parser.py.
+    """
+    soup = BeautifulSoup(html, "lxml")
 
     result: dict[str, Any] = {
         "url": url,
@@ -69,7 +97,29 @@ async def scrape_score_page(owner: str, repo: str, slug: str = "") -> dict[str, 
         if m:
             result["latest_release"] = m.group(0)
 
-    # Grade badges
+    # Server-level overall TDQS: <div id="tool-definition-quality"> holds an
+    # <h2>TDQS</h2>, a grade badge + X/5.0 score, and a "Scored <date> across
+    # N tools" line. Post-redesign this replaces the old flat grade-badge scan
+    # for "Tool Definition Quality" (that heading is now a sibling, not a
+    # shared-parent of the badge, so text-in-parent no longer matches it).
+    tdqs_section = soup.find(id="tool-definition-quality")
+    if tdqs_section:
+        badge = tdqs_section.find("span", class_=lambda c: c and "kIIaya" in str(c))
+        if badge:
+            bt = badge.get_text(strip=True)
+            if bt in ("A", "B", "C", "D", "F"):
+                result["tdqs_grade"] = bt
+        score_span = tdqs_section.find("span", class_=lambda c: c and "czikZZ" in str(c) and "jrPWok" in str(c))
+        if score_span:
+            result["tdqs_mean"] = _parse_score(score_span.get_text(strip=True))
+        scored_text = tdqs_section.get_text(" ", strip=True)
+        m_date = re.search(r"Scored\s+([\d-]+\s+[\d:]+)", scored_text)
+        if m_date:
+            result["scored_at"] = m_date.group(1)
+
+    # Maintenance / coherence-style grade badges elsewhere on the page (best
+    # effort - "Server Coherence" as a distinct labeled grade no longer
+    # appears post-redesign; kept for forward compatibility if it returns).
     for badge in soup.find_all("span", class_=lambda c: c and "kIIaya" in str(c)):
         badge_text = badge.get_text(strip=True)
         if badge_text not in ("A", "B", "C", "D", "F"):
@@ -81,8 +131,6 @@ async def scrape_score_page(owner: str, repo: str, slug: str = "") -> dict[str, 
                 result["coherence_grade"] = badge_text
             elif "Maintenance" in ptext:
                 result["maintenance_grade"] = badge_text
-            elif "Tool Definition Quality" in ptext:
-                result["tdqs_grade"] = badge_text
 
     # Coherence sub-scores
     coherence_labels = {"Disambiguation", "Naming Consistency", "Tool Count", "Completeness"}
@@ -102,59 +150,64 @@ async def scrape_score_page(owner: str, repo: str, slug: str = "") -> dict[str, 
                 result[key] = val
                 break
 
-    # TDQS mean/min
-    for el in soup.find_all(["p", "div", "span"]):
-        txt = el.get_text(strip=True)
-        if "Average" in txt and "Lowest" in txt:
-            m_mean = re.search(r"Average\s*([\d.]+)\s*/?\s*5", txt)
-            m_min = re.search(r"Lowest:\s*([\d.]+)\s*/?\s*5", txt)
-            if m_mean:
-                result["tdqs_mean"] = float(m_mean.group(1))
-            if m_min:
-                result["tdqs_min"] = float(m_min.group(1))
-            break
-
-    # Per-tool scores
+    # Per-tool scores. Post-redesign each tool is a <details id="{tool_name}">
+    # whose <summary> holds the name link + grade badge; its own TDQS overall
+    # score and 6 dimension cards are nested INSIDE the same <details>, not a
+    # following sibling <div> (that was the pre-redesign <button> layout).
     tools = []
-    for btn in soup.find_all("button"):
-        classes = " ".join(btn.get("class", []))
-        if "ULqjq" not in classes:
-            continue
-        link = btn.find("a", href=re.compile(r"/tools/"))
+    for det in soup.find_all("details"):
+        link = det.find("a", href=re.compile(r"/tools/"))
         if not link:
             continue
 
         tool_name = link.get_text(strip=True)
-        btn_text = btn.get_text(strip=True)
-        tool: dict[str, Any] = {
-            "name": tool_name,
-            "grade": _parse_grade(btn_text),
-            "score": _parse_score(btn_text),
-        }
+        summary = det.find("summary")
 
-        detail = btn.find_next_sibling("div")
-        if detail:
-            for dim_label, attr in [
-                ("Purpose", "purpose"),
-                ("Usage Guidelines", "usage_guidelines"),
-                ("Behavior", "behavior"),
-                ("Parameters", "parameters"),
-                ("Conciseness", "conciseness"),
-                ("Completeness", "completeness"),
-            ]:
-                dim_el = detail.find(string=re.compile(f"^{re.escape(dim_label)}$"))
-                if dim_el:
-                    card = dim_el.find_parent("div", class_=lambda c: c and "gMBAYo" in str(c))
-                    if card:
-                        span = card.find("span", class_=lambda c: c and "czikZZ" in str(c))
-                        if span:
-                            tool[attr] = _parse_score(span.get_text(strip=True))
+        grade = ""
+        search_scope = summary or det
+        for span in search_scope.find_all("span", class_=lambda c: c and "kIIaya" in str(c)):
+            t = span.get_text(strip=True)
+            if t in ("A", "B", "C", "D", "F"):
+                grade = t
+                break
+
+        score = 0.0
+        score_span = det.find("span", class_=lambda c: c and "czikZZ" in str(c) and "jrPWok" in str(c))
+        if score_span:
+            score = _parse_score(score_span.get_text(strip=True))
+
+        tool: dict[str, Any] = {"name": tool_name, "grade": grade, "score": score}
+
+        for dim_label, attr in [
+            ("Purpose", "purpose"),
+            ("Usage Guidelines", "usage_guidelines"),
+            ("Behavior", "behavior"),
+            ("Parameters", "parameters"),
+            ("Conciseness", "conciseness"),
+            ("Completeness", "completeness"),
+        ]:
+            dim_el = det.find(string=re.compile(f"^{re.escape(dim_label)}$"))
+            if dim_el:
+                card = dim_el.find_parent("div", class_=lambda c: c and "gMBAYo" in str(c))
+                if card:
+                    span = card.find("span", class_=lambda c: c and "czikZZ" in str(c))
+                    if span:
+                        tool[attr] = _parse_score(span.get_text(strip=True))
 
         if tool.get("score", 0) > 0 or tool.get("grade", ""):
             tools.append(tool)
 
     result["tools"] = len(tools)
     result["tool_details"] = tools
+
+    # tdqs_min: no longer available as scraped text (the old "Lowest: X/5"
+    # sentence is gone from the redesign) - derive it from the per-tool
+    # scores we just collected instead, which is more robust anyway.
+    if tools:
+        tool_scores = [t["score"] for t in tools if t.get("score", 0) > 0]
+        if tool_scores:
+            result["tdqs_min"] = min(tool_scores)
+            result.setdefault("tdqs_mean", round(sum(tool_scores) / len(tool_scores), 2))
 
     # Compute overall from TDQS
     tdqs_mean = result.get("tdqs_mean")

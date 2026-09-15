@@ -11,7 +11,7 @@
 
 > **[Installation Guide](INSTALL.md)** — quick start, manual setup, and troubleshooting
 
-**FastMCP 3.2** fleet server for MCP directory grades and ToolBench workflows. Monitors **ToolBench** (Arcade.dev, primary) and **LobeHub Marketplace** (presence probe), plus the former **toolbench-mcp** features: `toolbench_guide`, Playwright page archiver, `/tools` and `/logs` fleet pages. **Glama.ai** support is currently disabled pending a parser rewrite after their 2026-07 site redesign.
+**FastMCP 3.2** fleet server for MCP directory grades and ToolBench workflows. Monitors **ToolBench** (Arcade.dev, primary), **Glama.ai** (TDQS grades, per-tool and server-level), and **LobeHub Marketplace** (presence probe), plus the former **toolbench-mcp** features: `toolbench_guide`, Playwright page archiver, `/tools` and `/logs` fleet pages. **Glama.ai** support was re-enabled 2026-09-15 after a parser rewrite for their 2026-07 site redesign (TDQS moved off the old `/score` sub-page onto the main server page).
 
 ### Supersedes toolbench-mcp
 
