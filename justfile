@@ -44,9 +44,7 @@ certify: lint
 
 # Build Tauri native desktop app (full pipeline: frontend + backend)
 build-native:
-    Set-Location '{{justfile_directory()}}\native'
-    $env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"
-    pwsh -NoProfile -File '{{justfile_directory()}}\native\build.ps1'
+    Set-Location '{{justfile_directory()}}\native'; $env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"; pwsh -NoProfile -File '{{justfile_directory()}}\native\build.ps1'
 
 # Daily refresh: pull grades from all platforms and alert on drops
 daily-refresh:
