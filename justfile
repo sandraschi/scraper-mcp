@@ -10,7 +10,7 @@ default:
     @just --list
 
 start:
-    pwsh -ExecutionPolicy Bypass -File "{{justfile_directory()}}\start.ps1"
+    powershell.exe -ExecutionPolicy Bypass -File "{{justfile_directory()}}\start.ps1"
 
 start-backend:
     uv run python -m scraper_mcp.server --http --port 10998
