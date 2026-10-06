@@ -138,4 +138,12 @@ suite does not currently catch the dimension bug.
   in grades store under rival owners). Verified live on onenote-mcp:
   softeria/ms-365-mcp-server (ahead B vs C, 188-tool filch) and
   danosb/onenote-mcp (unindexed, 19-tool lead). Suite 97 green, ruff clean.
+- **Phase 4 DONE (2026-10-06):** daily digest (`digest.py` builder +
+  `scraper_digest` tool + `GET /api/digest` + `scripts/digest.py` +
+  `just digest`): distribution, deltas, worst tools, stale, open/aged
+  advice, pending releases, failed builds, competitor moves; ASCII markdown;
+  `digest_runs` markers; notify posts capped-10 events (competitors +
+  F dedupe vs last notified run, aged nags till resolved). Morning-digest
+  integration is a PULL contract (no git-github-mcp edits - live work there).
+  Live: 182 repos, onenote advice + competitors in-section. Suite 102 green.
 
