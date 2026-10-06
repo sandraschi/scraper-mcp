@@ -4,86 +4,23 @@ from typing import Annotated
 
 from pydantic import Field
 
+from ...advice import (
+    SEVERITY_ORDER,
+)
+from ...advice import (
+    classify_issue as _classify_issue,
+)
+from ...advice import (
+    extract_severity as _extract_severity,
+)
+from ...advice import (
+    is_fleet_exception as _is_fleet_exception,
+)
 from ...analytics import get_latest, upsert_grade
 from ...scrapers.engine import SCRAPERS
 from ..registry import mcp
 
 FLEET_OWNER = "sandraschi"
-
-# Known fleet exceptions - criteria we explicitly disagree with
-FLEET_EXCEPTIONS = {
-    "portmanteau": [
-        "single-responsibility",
-        "bundles multiple unrelated operations",
-        "portmanteau pattern",
-        "multiple operations into a single",
-        "does many different things",
-    ],
-    "one_action_per_tool": [
-        "one tool per action",
-        "atomic tool",
-        "single action per tool",
-    ],
-}
-
-# Pattern mapping from ToolBench issue text → fleet standard
-FLEET_STANDARD_MAP = {
-    "constrained-input": "TOOL_DESIGN_STANDARDS.md §5.1 - Use Literal/enums + Annotated Field for params",
-    "response-shaper": "TOOL_DESIGN_STANDARDS.md §4.4 - Document return shape with named keys",
-    "recovery-guide": "TOOL_DESIGN_STANDARDS.md §6 - Add structured errors + recovery_options",
-    "param-validation-rules": "TOOL_DESIGN_STANDARDS.md §5.1 - Add Field(ge=/le=/description=)",
-    "tool-description": "TOOL_DESIGN_STANDARDS.md §3 - Use gold-standard docstring template",
-    "confirmation-request": "TOOL_DESIGN_STANDARDS.md §5 - Add confirm/dry-run for destructive ops",
-    "tool-name": "TOOL_DESIGN_STANDARDS.md (§5 naming row) - Use verb-led snake_case names",
-    "output-schema": "TOOL_DESIGN_STANDARDS.md §7 - Add FastMCP output_schema= for stable shapes",
-    "annotations": "TOOL_DESIGN_STANDARDS.md §9 - Set READ_ONLY/MUTATING/DESTRUCTIVE annotations",
-    "pagination": "TOOL_DESIGN_STANDARDS.md §5 - Add limit + offset or cursor pagination",
-    "error-handling": "TOOL_DESIGN_STANDARDS.md §6 - Add error_type + suggestions in failure dicts",
-    "parameter-semantics": "TOOL_DESIGN_STANDARDS.md §5.1 - Document param defaults, ranges, interactions",
-}
-
-SEVERITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
-
-
-def _is_fleet_exception(issue_text: str) -> bool:
-    """Check if an issue is a known fleet exception we choose not to fix."""
-    lower = issue_text.lower()
-    for category, patterns in FLEET_EXCEPTIONS.items():
-        for p in patterns:
-            if p.lower() in lower:
-                return True
-    return False
-
-
-def _classify_issue(issue_text: str) -> list[str]:
-    """Map issue text to fleet standard sections."""
-    lower = issue_text.lower()
-    matched = []
-    for keyword, ref in FLEET_STANDARD_MAP.items():
-        if keyword.replace("-", " ") in lower or keyword in lower:
-            matched.append(ref)
-    if not matched:
-        # Generic fallback
-        if "description" in lower or "docstring" in lower:
-            matched.append("TOOL_DESIGN_STANDARDS.md §3 - Improve docstring quality")
-        elif "schema" in lower or "parameter" in lower or "param" in lower:
-            matched.append("TOOL_DESIGN_STANDARDS.md §5.1 - Add parameter constraints")
-        elif "output" in lower or "return" in lower:
-            matched.append("TOOL_DESIGN_STANDARDS.md §4.4 - Document return format")
-        elif "error" in lower or "recovery" in lower:
-            matched.append("TOOL_DESIGN_STANDARDS.md §6 - Add error handling guidance")
-        elif "name" in lower:
-            matched.append("TOOL_DESIGN_STANDARDS.md (§5 naming row) - Rename for verb-led pattern")
-        else:
-            matched.append("Refer to TOOL_DESIGN_STANDARDS.md for guidance")
-    return matched
-
-
-def _extract_severity(issue_text: str) -> str:
-    for sev in ("critical", "high", "medium", "low"):
-        if issue_text.lower().startswith(sev):
-            return sev
-    return "medium"
 
 
 def _severity_sort_key(issue: dict) -> tuple:

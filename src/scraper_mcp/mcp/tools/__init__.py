@@ -1,10 +1,12 @@
 """MCP tools package - portmanteau imports for FastMCP registration."""
 
 from . import (
+    advice,
     autofix,
     cards,
     coverage,
     email,
+    fleet,
     guide,
     helptool,
     improvement,
@@ -16,10 +18,12 @@ from . import (
 )
 
 __all__ = [
+    "advice",
     "autofix",
     "cards",
     "coverage",
     "email",
+    "fleet",
     "guide",
     "platforms",
     "improvement",
