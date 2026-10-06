@@ -24,18 +24,24 @@ _server_owner_cache: dict[str, str] = {}
 # Tolerance for dimension-score weighted-sum reconciliation.
 _RECONCILE_TOLERANCE = 1.5
 
-# Unique per-dimension method strings, appearing exactly once per assessment page.
-# The old labels ("Definition Quality", "Protocol Readiness", "Supportability") all
-# appear first in the methodology blurb ("Local MCP - Scored on Definition Quality (50%),
-# Protocol Readiness (20%), and Supportability (30%)").  _extract_pct scans forward from
-# that anchor and always lands on the Definition score for all three, because Protocol
-# and Supportability scores come later in the page and the scan hits the Definition
-# number first every time.  The method strings below are unique to each dimension row.
-_DIMENSION_METHOD_STRINGS = {
-    "definition_score": "Pattern-based scoring",
-    "protocol_score": "Static analysis",
-    "supportability_score": "GitHub signals",
-}
+# v2 assessment pages (rubric v2, ~2026-09) are Next.js flight-data pages. The v1
+# method-string anchors ("Pattern-based scoring", ...) no longer exist on live
+# pages. Robust anchors are the data strings themselves, matched on FLATTENED
+# page text (soup.get_text(" ", strip=True) joins everything with spaces, so
+# there are no pipe separators — verified live 2026-10-06):
+#   header:  "6 tools C 68 /100 Definition Quality 70 Protocol Readiness 82 ..."
+#   history: "2026-09-22: 68/100 (C) · v2 rubric"
+#   tools:   "tool_extract_links read only source verified 72 /100 Extract ..."
+# (see docs/TOOLBENCH_V2_REWRITE_20261006.md). The grade letter is deliberately
+# NOT captured (A.2 gate: grade from API only).
+_HEADER_RE = re.compile(
+    r"(\d+)\s*/100\s*Definition Quality\s*(\d+)"
+    r"\s*Protocol Readiness\s*(\d+)"
+    r"\s*Supportability\s*(\d+)"
+)
+_HISTORY_RE = re.compile(r"(\d{4}-\d{2}-\d{2}):\s*(\d+)/100\s*\(([A-Z]\+?)\)\s*·\s*(v\d+)\s*rubric")
+_TOOL_ROW_STRICT_RE = re.compile(r"([A-Za-z][A-Za-z0-9_]{2,})\s+read only\s+source verified\s+(\d+)\s*/100")
+_TOOLS_COUNT_RE = re.compile(r"Tools\s*\((\d+)\)")
 
 # Published at https://toolbench.arcade.dev/methodology
 _GRADE_CUTS = ((90.0, "A+"), (80.0, "A"), (70.0, "B"), (60.0, "C"), (50.0, "D"))
@@ -209,60 +215,63 @@ def _parse_assessment_data(
         "server_id": server_id,
     }
 
-    for key, label in _DIMENSION_METHOD_STRINGS.items():
-        result[key] = _extract_pct(text, label)
+    # v2 header strip: overall + 3 dimensions in one unambiguous sequence.
+    # Grade letter deliberately not captured (A.2 gate: grade from API only).
+    header = _HEADER_RE.search(text)
+    if header:
+        result["overall_score"] = float(header.group(1))
+        result["definition_score"] = float(header.group(2))
+        result["protocol_score"] = float(header.group(3))
+        result["supportability_score"] = float(header.group(4))
+    else:
+        result["overall_score"] = None
+        result["definition_score"] = None
+        result["protocol_score"] = None
+        result["supportability_score"] = None
 
-    issues = []
-    issues_header = soup.find(string=re.compile(r"Top Issues"))
-    if issues_header:
-        section = issues_header.find_parent(["div", "section"])
-        if section:
-            issues_container = section.find("div", class_=lambda c: c and "space-y-2" in str(c))
-            if issues_container:
-                for child in issues_container.find_all(["div", "li"], recursive=False):
-                    txt = child.get_text(strip=True)
-                    if len(txt) > 30:
-                        issues.append(txt[:400])
-                        if len(issues) >= 10:
-                            break
-            else:
-                for child in section.find_all(["div", "li"], recursive=False):
-                    txt = child.get_text(strip=True)
-                    if len(txt) > 30 and any(sev in txt[:20].lower() for sev in ["critical", "high", "medium", "low"]):
-                        issues.append(txt[:400])
-                        if len(issues) >= 10:
-                            break
+    # Score history: dated entries, newest last; latest rubric tag surfaced.
+    history = [{"date": d, "score": float(s), "grade": g, "rubric": r} for d, s, g, r in _HISTORY_RE.findall(text)]
+    result["score_history"] = history
+    result["rubric"] = history[-1]["rubric"] if history else None
+
+    issues: list[str] = []
+    # v2: severity badges are SSR'd DOM (span.sev in div.issue-head).
+    for head in soup.find_all("div", class_=lambda c: c and "issue-head" in str(c)):
+        block = head.find_parent("div")
+        if block is not None:
+            txt = block.get_text(" ", strip=True)
+            if len(txt) > 30:
+                issues.append(txt[:400])
+                if len(issues) >= 10:
+                    break
+    if not issues:
+        # Fallback: severity-badge neighborhoods in flattened text.
+        for badge in re.finditer(r"(HIGH|MEDIUM|LOW|CRITICAL)", text, re.I):
+            window = text[max(0, badge.start() - 40) : badge.end() + 360].strip()
+            if len(window) > 60:
+                issues.append(window[:400])
+                if len(issues) >= 10:
+                    break
     result["top_issues"] = issues[:10]
 
     tools = []
-    tool_section = soup.find(string=re.compile(r"Tools\s*\("))
-    if not tool_section:
-        tool_section = soup.find(string=re.compile(r"Function\s+Description\s+Risk"))
-    if tool_section:
-        section = tool_section.find_parent(["div", "section"])
-        if section:
-            for row in section.find_all(
-                ["tr", "div"],
-                class_=lambda c: c and "row" in str(c).lower() if c else False,
-            ):
-                cells = row.find_all(["td", "div"])
-                if len(cells) >= 2:
-                    name = cells[0].get_text(strip=True)
-                    score = 0
-                    for c in cells:
-                        rm = re.search(r"(\d+)", c.get_text(strip=True))
-                        if rm:
-                            score = float(rm.group(1))
-                    if name and len(name) < 100:
-                        tools.append({"name": name, "tool_score": score})
-            if not tools:
-                for row in section.find_all("tr"):
-                    cells = row.find_all("td")
-                    if len(cells) >= 3:
-                        name = cells[0].get_text(strip=True)
-                        score = _extract_number(cells[-1].get_text(strip=True)) if cells[-1] else 0
-                        if name and len(name) < 100:
-                            tools.append({"name": name, "tool_score": score})
+    # Scope row search to the catalog region (after "Tools (N)") so header and
+    # score-history numbers can never match as tool rows.
+    count_match = _TOOLS_COUNT_RE.search(text)
+    result["expected_tool_count"] = int(count_match.group(1)) if count_match else None
+    tools_text = text[count_match.end() :] if count_match else text
+    for row in _TOOL_ROW_STRICT_RE.finditer(tools_text):
+        name, score = row.group(1), float(row.group(2))
+        if len(name) < 100:
+            tools.append({"name": name, "tool_score": score})
+    # Dedupe (flight payloads may repeat rows), preserving order.
+    seen: set[str] = set()
+    uniq_tools = []
+    for tool in tools:
+        if tool["name"] not in seen:
+            seen.add(tool["name"])
+            uniq_tools.append(tool)
+    tools = uniq_tools
     result["tools"] = len(tools)
     result["tool_details"] = tools
     return result
@@ -409,7 +418,7 @@ async def fetch_grade_with_details(owner: str, repo: str) -> dict[str, Any] | No
         }
 
     if detail.get("score") is None:
-        detail["score"] = api_data.get("overallScore")
+        detail["score"] = api_data.get("overallScore") or detail.get("overall_score")
     if detail.get("status") in (None, "", "unknown"):
         detail["status"] = api_data.get("status", "unknown")
     if not detail.get("tools"):

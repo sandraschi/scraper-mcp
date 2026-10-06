@@ -20,9 +20,12 @@ def _load_json_fixture() -> dict:
 
 
 def _load_html_fixture() -> str:
+    """Newest snapshot. The v1 file (tools_cmmjaiup2042usb9t2r4bjype.html) is
+    retained as layout history; the live page moved to the v2 rubric layout
+    on ~2026-09-22 (see docs/TOOLBENCH_V2_REWRITE_20261006.md)."""
     html_files = sorted(FIXTURES.glob("tools_*.html"))
     assert html_files, "no HTML fixture found — run scripts/capture_fixtures.py"
-    return html_files[0].read_text(encoding="utf-8")
+    return html_files[-1].read_text(encoding="utf-8")
 
 
 # ===========================================================================
@@ -57,12 +60,13 @@ def test_extract_pct_float_value():
 
 
 def test_extract_pct_all_dimensions():
-    from scraper_mcp.scrapers.toolbench_score import _DIMENSION_METHOD_STRINGS, _extract_pct
+    from scraper_mcp.scrapers.toolbench_score import _extract_pct
 
-    text = "Pattern-based scoring 62 Static analysis 48 GitHub signals 55"
-    assert _extract_pct(text, _DIMENSION_METHOD_STRINGS["definition_score"]) == 62.0
-    assert _extract_pct(text, _DIMENSION_METHOD_STRINGS["protocol_score"]) == 48.0
-    assert _extract_pct(text, _DIMENSION_METHOD_STRINGS["supportability_score"]) == 55.0
+    # v2 header-strip shape: label | number pairs.
+    text = "Definition Quality | 70 | Protocol Readiness | 82 | Supportability | 54"
+    assert _extract_pct(text, "Definition Quality") == 70.0
+    assert _extract_pct(text, "Protocol Readiness") == 82.0
+    assert _extract_pct(text, "Supportability") == 54.0
 
 
 def test_extract_pct_skips_percentage_weight():
@@ -82,8 +86,7 @@ def test_extract_pct_number_not_percent_still_found():
 
 
 def test_extract_pct_miss_on_blurb():
-    """The methodology blurb 'Definition Quality (50%)' does not match
-    the method string 'Pattern-based scoring', so the blurb is invisible."""
+    """An anchor label absent from the text yields None (no guessing)."""
     from scraper_mcp.scrapers.toolbench_score import _extract_pct
 
     blurb = "Local MCP - Scored on Definition Quality (50%), Protocol Readiness (20%)"
@@ -91,18 +94,80 @@ def test_extract_pct_miss_on_blurb():
 
 
 def test_dimension_scores_from_real_html_fixture():
-    """BLOCKER 2 regression: exact (79.0, 80.0, 38.0) on the real fixture."""
+    """v2 regression: exact (70.0, 82.0, 54.0) + overall 68 on the 2026-10-06
+    snapshot, via the real parse path (not the helper in isolation)."""
     from bs4 import BeautifulSoup
 
-    from scraper_mcp.scrapers.toolbench_score import _DIMENSION_METHOD_STRINGS, _extract_pct
+    from scraper_mcp.scrapers.toolbench_score import _parse_assessment_data
 
     html = _load_html_fixture()
     soup = BeautifulSoup(html, "lxml")
-    text = soup.get_text(" ", strip=True)
+    result = _parse_assessment_data(soup, "https://example.com", "dummy-id")
 
-    assert _extract_pct(text, _DIMENSION_METHOD_STRINGS["definition_score"]) == 79.0
-    assert _extract_pct(text, _DIMENSION_METHOD_STRINGS["protocol_score"]) == 80.0
-    assert _extract_pct(text, _DIMENSION_METHOD_STRINGS["supportability_score"]) == 38.0
+    assert result["definition_score"] == 70.0
+    assert result["protocol_score"] == 82.0
+    assert result["supportability_score"] == 54.0
+    assert result["overall_score"] == 68.0
+    # A.2 gate holds on the new path too: grade never comes from page HTML.
+    assert "grade" not in result
+
+
+def test_score_history_newest_is_v2():
+    """Score history entries parse newest-last; latest rubric tag surfaces."""
+    from bs4 import BeautifulSoup
+
+    from scraper_mcp.scrapers.toolbench_score import _parse_assessment_data
+
+    html = _load_html_fixture()
+    soup = BeautifulSoup(html, "lxml")
+    result = _parse_assessment_data(soup, "https://example.com", "dummy-id")
+
+    history = result["score_history"]
+    assert len(history) >= 2
+    assert history[-1] == {"date": "2026-09-22", "score": 68.0, "grade": "C", "rubric": "v2"}
+    assert result["rubric"] == "v2"
+
+
+def test_tool_rows_v2_names_and_scores():
+    """v2 tool catalog rows: names with per-tool scores, GAP 7 schema kept."""
+    from bs4 import BeautifulSoup
+
+    from scraper_mcp.scrapers.toolbench_score import _parse_assessment_data
+
+    html = _load_html_fixture()
+    soup = BeautifulSoup(html, "lxml")
+    result = _parse_assessment_data(soup, "https://example.com", "dummy-id")
+
+    assert result["tools"] == 6
+    assert result["expected_tool_count"] == 6
+    by_name = {t["name"]: t["tool_score"] for t in result["tool_details"]}
+    assert by_name["tool_extract_links"] == 72.0
+    assert by_name["tool_search_google"] == 72.0
+    assert by_name["tool_scrape_url"] == 73.0
+    for tool in result["tool_details"]:
+        assert "tool_score" in tool
+        assert "risk_score" not in tool
+
+
+def test_top_issues_v2_present():
+    """v2 issues come from SSR'd severity badges (span.sev in div.issue-head)."""
+    from bs4 import BeautifulSoup
+
+    from scraper_mcp.scrapers.toolbench_score import _parse_assessment_data
+
+    html = _load_html_fixture()
+    soup = BeautifulSoup(html, "lxml")
+    result = _parse_assessment_data(soup, "https://example.com", "dummy-id")
+
+    assert len(result["top_issues"]) >= 3
+    assert any("HIGH" in issue for issue in result["top_issues"])
+
+
+def test_dimensions_reconcile_v2_snapshot():
+    """0.5*70 + 0.2*82 + 0.3*54 = 67.6 ≈ 68: v2 numbers satisfy the guard."""
+    from scraper_mcp.scrapers.toolbench_score import _dimensions_reconcile
+
+    assert _dimensions_reconcile(70, 82, 54, 68) is True
 
 
 # ===========================================================================
