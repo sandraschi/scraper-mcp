@@ -1,5 +1,31 @@
 # Changelog
 
+## 2026-10-06 - Glama-email workflow Phases 1-4, ToolBench v2, LobeHub engine
+
+- **Phase 1 (ingest)**: `scraper_email` op (`ingest`/`events`/`pending_releases`)
+  + `email_ingest` module + `email_events` store. Typed R/B/F/O classification,
+  sanitize-boundary unwrap, SafeLinks unwrap, idempotent upserts. Verified live
+  against the real Glama folder (6R/2B/1F). Spec: `docs/SPEC_GLAMA_EMAIL_PHASE1_20261006.md`.
+- **Phase 2 (advice)**: `scraper_advice` (Glama worst tools + weakest TDQS dims
+  mapped to docstring fixes; ToolBench issues via shared map) with persisted
+  `advice_items`. `improvement.py` imports the map from `advice.py`.
+  `glama-status-mcp` archived (README banner; UX ported as `scraper_fleet`).
+- **Phase 3 (competitors)**: Related-server extraction (aria-label anchor) +
+  `scraper_competitors` (Glama links + LobeHub market neighbors, grade gaps,
+  filch/lead diffs). Verified live: softeria/ms-365-mcp-server, danosb/onenote-mcp.
+- **Phase 4 (digest)**: `digest.py` + `scraper_digest` + `GET /api/digest` +
+  `just digest` + aiwatcher notify (capped, deduped). Morning digest consumes
+  via pull contract. Verified live on 182 repos. Suite 102 passed.
+- **ToolBench v2 rewrite**: assessment pages moved to rubric v2 + Next.js;
+  `_parse_assessment_data` rewritten on flattened-text anchors, score history
+  + `overall_score`/`rubric`/`expected_tool_count` keys. Spec:
+  `docs/TOOLBENCH_V2_REWRITE_20261006.md`.
+- **LobeHub engine**: market-cli search + criticism capture, owner-verified
+  matching, grade N/A honesty. Tests 11, no live calls in CI.
+- **Tree-dirt cleanup**: 9 stale paths triaged (CUA deps, unified launcher,
+  venv-pyinstaller fix, backend fixes); wrongful `mcpb-pack.ps1` deletion
+  reverted + recipe repointed.
+
 ## 2026-09-15 — Glama scraper re-enabled after site redesign
 
 Re-wrote `glama_score.py`'s per-tool parser and re-enabled `GlamaScraper.fetch_grade` (was
