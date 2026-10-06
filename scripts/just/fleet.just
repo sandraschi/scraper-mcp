@@ -9,9 +9,9 @@ REPO_DIR := justfile_directory()
 
 # --- Build & Release ---------------------------------------------------------
 
-# Build .mcpb bundle for Claude Desktop (sync src into mcpb/, validate, pack)
+# Build .mcpb bundle for Claude Desktop (generates manifest/.mcpbignore if missing, packs to dist/)
 mcpb-pack:
-    powershell.exe -NoProfile -File "{{REPO_DIR}}/mcpb/pack.ps1"
+    powershell.exe -NoProfile -File "{{REPO_DIR}}/scripts/mcpb-pack.ps1" -RepoRoot "{{REPO_DIR}}"
 
 # Run CUA-NSIS smoke test (install -> launch -> verify -> uninstall)
 # Syncs reports/cua-<repo>-<date>.md to mcd when the smoke script writes one.
