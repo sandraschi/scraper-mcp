@@ -132,4 +132,10 @@ suite does not currently catch the dimension bug.
   (README banner; stale parser retired; its tree dirt left untouched).
   Suite 89 green, ruff clean; `scraper_advice` verified live on onenote-mcp
   (5 items matching Glama's own commentary).
+- **Phase 3 DONE (2026-10-06):** `scraper_competitors` (Glama Related-server
+  links via aria-label anchor + live LobeHub market neighbors, owner-verified,
+  self excluded; grade gaps + filch/lead tool diffs; links persisted, snapshots
+  in grades store under rival owners). Verified live on onenote-mcp:
+  softeria/ms-365-mcp-server (ahead B vs C, 188-tool filch) and
+  danosb/onenote-mcp (unindexed, 19-tool lead). Suite 97 green, ruff clean.
 
