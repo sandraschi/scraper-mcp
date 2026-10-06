@@ -398,6 +398,22 @@ def build_app() -> FastAPI:
             ],
         }
 
+    @app.get("/api/digest")
+    async def api_digest(format: str = Query("both"), notify: bool = Query(False)) -> dict[str, Any]:
+        """Daily grades digest (Phase 4 pull contract for the morning digest).
+
+        Query: ?format=markdown|json|both &notify=true|false.
+        """
+        from scraper_mcp.digest import run_digest
+
+        result = await run_digest(notify_flag=notify)
+        payload: dict[str, Any] = {"success": True, "notified": result["notified"]}
+        if format in ("markdown", "both"):
+            payload["markdown"] = result["markdown"]
+        if format in ("json", "both"):
+            payload["data"] = result["data"]
+        return payload
+
     app.include_router(build_meta_router())
     app.include_router(build_scraper_router())
     app.include_router(build_logs_router())

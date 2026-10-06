@@ -54,6 +54,10 @@ daily-refresh:
 register-daily-refresh:
     powershell.exe -NoProfile -File "{{justfile_directory()}}\scripts\register-daily-refresh.ps1"
 
+# Daily grades digest (Phase 4): markdown+JSON from local stores, optional aiwatcher notify
+digest *args:
+    uv run python "{{justfile_directory()}}\scripts\digest.py" {{args}}
+
 # Bootstrap: install dev deps + pre-commit hook
 bootstrap:
     uv sync --group dev

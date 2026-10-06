@@ -137,7 +137,9 @@ def test_fleet_staleness_and_deltas(tmp_store):
     upsert_grade("glama", "sandraschi", "new-mcp", "B", 4.0, _glama_raw())
     upsert_grade("glama", "sandraschi", "new-mcp", "A", 4.5, _glama_raw())
 
-    from scraper_mcp.mcp.tools.fleet import _deltas, _stale_entries, _worst_tools
+    from scraper_mcp.fleet_queries import grade_deltas as _deltas
+    from scraper_mcp.fleet_queries import stale_entries as _stale_entries
+    from scraper_mcp.fleet_queries import worst_tools as _worst_tools
 
     stale = _stale_entries("sandraschi", max_days=0)
     assert {row["repo"] for row in stale} == {"old-mcp", "new-mcp"}
