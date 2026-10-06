@@ -90,7 +90,7 @@ Browser: `http://127.0.0.1:10999`
 ## Architecture
 
 ```
-scrapers/engine.py         # ToolBench + LobeHub scrapers (Glama disabled)
+scrapers/engine.py         # 3 scrapers (toolbench/glama/lobehub) + SCRAPERS registry + refresh_all/refresh_single
 analytics.py               # SQLite grade store + delta history
 scraper_api.py             # Playwright ToolBench archiver
 mcp/tools/                 # scraper_* tools, toolbench_guide, cards, prompts

@@ -4,7 +4,7 @@ Fleet MCP server — **replaces toolbench-mcp** (ports 10816/10817 → 10998/109
 
 ## Scope
 
-- Multi-platform grades: ToolBench (primary), LobeHub (probe only), ~~Glama~~ (disabled — site redesign 2026-07)
+- Multi-platform grades: ToolBench (primary), Glama.ai (TDQS per-tool + server-level; parser rewritten 2026-09-15 for the 2026-07 site redesign), LobeHub (market-cli criticism capture, no letter grades)
 - ToolBench-only extras ported from toolbench-mcp: `toolbench_guide`, `/api/scraper/*`, webapp `/tools` + `/logs`
 
 Do not re-add a separate toolbench-mcp scraper stack; extend here.
@@ -13,7 +13,7 @@ Do not re-add a separate toolbench-mcp scraper stack; extend here.
 
 ```powershell
 uv sync --extra dev
-uv run pytest tests/ -q          # 36 tests
+uv run pytest tests/ -q          # 59 tests (verified 2026-10-06)
 .\start.ps1
 uv run python -m scraper_mcp.server --http --port 10998
 ```
@@ -25,7 +25,11 @@ uv run python -m scraper_mcp.server --http --port 10998
   `grade_from_score`, `resolve_grade`, `_find_candidates`, `_owner_from_soup`,
   `_dimensions_reconcile`, `_extract_pct`, `fetch_grade_with_details` (two-stage owner-verified)
 - `src/scraper_mcp/scrapers/engine.py` — 3 scraper classes + SCRAPERS registry + refresh_all/refresh_single
-- `src/scraper_mcp/scrapers/glama_score.py` — BROKEN (site redesign; GlamaScraper disabled in engine.py)
+- `src/scraper_mcp/scrapers/glama_score.py` — Glama parser, rewritten 2026-09-15 for the redesign:
+  `<details id=\"{tool}\">` per-tool cards, server TDQS in `<div id=\"tool-definition-quality\">`,
+  `tdqs_min` derived from per-tool scores. Glama's CSS classes (`kIIaya`/`czikZZ`) are
+  build-hashed and WILL drift — re-verify against live HTML before assuming data is gone.
+- `tests/test_glama_parser.py` — Glama parser regression tests against a committed HTML fixture
 - `src/scraper_mcp/mcp/tools/` — 13 MCP tools (coverage, guide, suggest, improvement, status, helptool, cards, platforms, shutdown)
 - `tests/test_toolbench_parser.py` — 26 parser regression tests with fixtures
 - `tests/fixtures/toolbench/` — Live API + HTML fixtures
@@ -75,4 +79,40 @@ an unfixed repo turns "not listed" into "publicly graded F". An unindexed repo c
 for 210/211 Python repos; topics, descriptions, homepages and tagged releases still outstanding.
 Tests 36 passing, ruff clean, but note the parser value assertions run on synthetic strings, so the
 suite does not currently catch the dimension bug.
+
+## Update (2026-10-06)
+
+- **Glama re-enabled 2026-09-15.** `glama_score.py` rewritten for the 2026-07 redesign;
+  `GlamaScraper` is live in `engine.py` `SCRAPERS` again. Any "Glama disabled / BROKEN"
+  note above this section is historical — do not act on it.
+- **Direction: Glama-email workflow.** Plan at
+  `mcp-central-docs/projects/scraper-mcp/GLAMA_EMAIL_DIGEST_PLAN.md`: email-mcp ingests
+  Hotmail `glama`-folder notifications, scraper-mcp follows links for deep TDQS advice +
+  competitor diffs, daily digest feeds `fleet_morning_digest` + aiwatcher. Same shape for
+  LobeHub/ToolBench.
+- **Merge + archive:** `glama-status-mcp` (precursor, stale pre-redesign parser) will be
+  merged (delta/report/staleness UX ported here) then archived. Its `scraper.py` is **not**
+  to be fixed — the good parser already lives here.
+- **Still open from 2026-07-29:** ToolBench `_extract_pct` dimension bug, fleet denominator
+  reconcile (150 vs 211 vs ~128), Glama fixture refresh (fixture is 2026-09-15 — re-verify
+  hashed classes against live HTML). Fresh multi-platform `refresh_all` numbers pending.
+
+## Update (2026-10-06, warm-up results)
+
+- **Suite baseline:** 59 passed, 0 failed (Quick Ref corrected from 36). 1 pre-existing
+  warning: Starlette `httpx` deprecation inside fastapi's testclient — not our code.
+- **Fixture freshness:** live single-fetch check of virtualization-mcp vs the 2026-09-15
+  fixture — all anchors + hashed classes present (`kIIaya` x22, `czikZZ` x76, `gMBAYo` x54,
+  `<details>` x9, `#tool-definition-quality`, Scored line; zero `ULqjq`).
+  `parse_score_html` on live HTML: 9 tools, B/3.0. No drift; fixture stands.
+  Scratch: `C:\Users\sandr\AppData\Local\Temp\opencode\glama_fixture_check.py` (not in repo).
+- **ToolBench v2 rewrite (TLC-4, DONE 2026-10-06):** the 05:37 BLOCKER 2 fix was real
+  but v1-only (this section's "still wrong" note was stale since 05:37 — written 2 min
+  before the fix landed). ToolBench then shipped a v2 rubric + Next.js redesign
+  (~2026-09-22) that zeroed the v1 anchors. `_parse_assessment_data` rewritten on
+  flattened-text data-string anchors (header run, score history, catalog rows, SSR'd
+  sev badges); formula + A.2 gate + reconcile-or-None preserved. New snapshot fixture
+  + 4 new tests: **63 passed**, ruff check + format clean. Spec:
+  `docs/TOOLBENCH_V2_REWRITE_20261006.md`. New keys `overall_score / score_history /
+  rubric / expected_tool_count` (last three also in engine pass-through).
 
