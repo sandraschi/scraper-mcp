@@ -19,7 +19,7 @@ This server monitors fleet MCP repo grades across **ToolBench**, **Glama.ai**, a
 ### Grade meaning
 - **ToolBench**: A+ (90-100) to F (<50). Weighs definition quality 50%, protocol 20%, supportability 30%.
 - **Glama**: A (>=3.5) to F (<1.0). 100% docstring quality. 60% mean + 40% minimum across tools.
-- **LobeHub**: Presence only - no grades.
+- **LobeHub**: No letter grades - listing criticism (unvalidated, unclaimed, missing prompts/resources, no ratings).
 """
 
 ADVANCED = """## scraper-mcp Help (Advanced)
@@ -66,9 +66,11 @@ PLATFORM_DETAIL = """## Platform Detail
 - **Formula**: 60% mean + 40% minimum across all tools - one bad tool pulls score down
 - **Rescore**: Click "Sync Server" on glama.ai admin page (auto-rescans daily)
 
-### LobeHub (lobehub.com)
-- **Grades**: None - presence only
-- **Purpose**: Discoverability in open-source MCP marketplace
+### LobeHub (lobehub.com / market.lobehub.com)
+- **Grades**: None - detailed listing criticism instead (not validated, unclaimed, no prompts/resources indexed, no ratings)
+- **Source**: `@lobehub/market-cli mcp search` (anonymous JSON); `mcp view`/comments need `market-cli register`
+- **Refresh**: owners run `lhm plugin update`; the scraper cannot trigger rescoring
+- **Purpose**: Discoverability + listing hygiene in open-source MCP marketplace
 """
 
 

@@ -46,7 +46,7 @@ GRADE_HELP_MD = """# scraper-mcp Grade Help
 - **D-F** (<2.0): Needs significant docstring improvement
 
 ## LobeHub
-- Presence only - no letter grades
+- No letter grades - listing criticism (prompts/resources/validation/ratings gaps, surfaced as top_issues)
 """
 
 
