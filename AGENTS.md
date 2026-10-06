@@ -123,4 +123,13 @@ suite does not currently catch the dimension bug.
   `fleet.just` recipe pointed at nonexistent `mcpb/pack.ps1`) + recipe repointed.
   3 commits (`5bc28cb`, `9a0adc1`, `f6ea396`), suite still 63 green. `backend.rs`
   changes are review-only (no cargo check run — Tauri toolchain out of scope).
+- **Phase 2 DONE (2026-10-06):** `scraper_advice` (Glama worst tools + weakest
+  TDQS dims mapped to docstring fixes; ToolBench issues via shared map) with
+  persisted `advice_items`, and `scraper_fleet` (`staleness`/`worst_tools`/
+  `deltas`) ported from glama-status-mcp onto the unified store.
+  `improvement.py` refactored to import the map from `advice.py` (single
+  source of truth, tool body untouched). `glama-status-mcp` archived
+  (README banner; stale parser retired; its tree dirt left untouched).
+  Suite 89 green, ruff clean; `scraper_advice` verified live on onenote-mcp
+  (5 items matching Glama's own commentary).
 
