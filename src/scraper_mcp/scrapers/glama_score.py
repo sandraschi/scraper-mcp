@@ -43,6 +43,45 @@ def _parse_score(text: str) -> float:
     return float(m.group(1)) if m else 0.0
 
 
+_RELATED_LINK_RE = re.compile(r"^/mcp/servers/([^/?#]+)/([^/?#]+)$")
+
+
+def _parse_related_servers(soup: BeautifulSoup) -> list[dict[str, str]]:
+    """Competitor links from <section aria-label="Related MCP Servers">.
+
+    Anchored on the aria-label (semantic, survives CSS-module drifts like
+    the kIIaya/czikZZ class renames). Only owner/repo paths qualify -
+    author `?query=` links are excluded. Capped at 10.
+    """
+    related: list[dict[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    section = soup.find("section", attrs={"aria-label": "Related MCP Servers"})
+    if not section:
+        return related
+    for link in section.find_all("a", href=True):
+        match = _RELATED_LINK_RE.match(link["href"])
+        if not match:
+            continue
+        owner, repo = match.group(1).lower(), match.group(2).lower()
+        if (owner, repo) in seen:
+            continue
+        name = link.get_text(strip=True)
+        if not name:
+            continue
+        seen.add((owner, repo))
+        related.append(
+            {
+                "owner": owner,
+                "repo": repo,
+                "name": name[:120],
+                "url": f"{GLAMA_BASE}/mcp/servers/{owner}/{repo}",
+            }
+        )
+        if len(related) >= 10:
+            break
+    return related
+
+
 async def scrape_score_page(owner: str, repo: str, slug: str = "") -> dict[str, Any] | None:
     """Fetch and parse a Glama score page.
 
@@ -242,5 +281,7 @@ def parse_score_html(html: str, url: str = "") -> dict[str, Any]:
                 if overall >= 1.0
                 else "F"
             )
+
+    result["related_servers"] = _parse_related_servers(soup)
 
     return result

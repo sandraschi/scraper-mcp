@@ -59,6 +59,24 @@ def test_tdqs_min_derived_from_lowest_tool_not_missing_text():
     assert result["tdqs_min"] == min(tool_scores)
 
 
+def test_related_servers_extracted_author_links_excluded():
+    """Related MCP Servers section yields owner/repo links; author ?query=
+    links and connector links are excluded. Anchored on aria-label, not
+    hashed classes."""
+    from scraper_mcp.scrapers.glama_score import parse_score_html
+
+    result = parse_score_html(_load_fixture())
+    related = result["related_servers"]
+    assert len(related) >= 1
+    by_repo = {(entry["owner"], entry["repo"]): entry for entry in related}
+    assert ("washyu", "homelab_mcp") in by_repo
+    assert by_repo[("washyu", "homelab_mcp")]["name"] == "Homelab MCP Server"
+    for entry in related:
+        assert entry["url"].startswith("https://glama.ai/mcp/servers/")
+        assert "?" not in entry["url"]
+        assert "/connectors/" not in entry["url"]
+
+
 def test_no_stale_button_ulqjq_dependency():
     """Regression guard: the pre-redesign parser looked for <button
     class="ULqjq">, which no longer exists. Must not silently return zero
