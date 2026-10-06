@@ -115,4 +115,12 @@ suite does not currently catch the dimension bug.
   + 4 new tests: **63 passed**, ruff check + format clean. Spec:
   `docs/TOOLBENCH_V2_REWRITE_20261006.md`. New keys `overall_score / score_history /
   rubric / expected_tool_count` (last three also in engine pass-through).
+- **Tree-dirt cleanup (2026-10-06):** 9 stale uncommitted paths triaged. Kept:
+  CUA dev deps + synced lockfile, LobeHub help text, unified webapp launcher +
+  config, venv-pyinstaller build fix, backend.rs `\\?\` strip + poll 240→10,
+  (LobeHub engine work shipped earlier as `de8bba0`). Gunk removed properly:
+  `scripts/mcpb-pack.ps1` deletion REVERTED (only working pack path; the
+  `fleet.just` recipe pointed at nonexistent `mcpb/pack.ps1`) + recipe repointed.
+  3 commits (`5bc28cb`, `9a0adc1`, `f6ea396`), suite still 63 green. `backend.rs`
+  changes are review-only (no cargo check run — Tauri toolchain out of scope).
 
