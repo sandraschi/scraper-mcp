@@ -100,10 +100,19 @@ only stores the events.
 - Suite green (`pytest`), `ruff check` + `ruff format --check` clean.
 - Assfix-zero for new ops: real behavior, no stubs; fixtures documented.
 
-## 10. Open questions
+## 10. Open questions (resolved 2026-10-06 via live ingest)
 
-- Exact href shapes (view-server / build-details / releases) — read from
-  live `fetch_email_detail` HTML at build time.
+- ~~Exact href shapes~~ RESOLVED from live `fetch_email_detail` HTML: all
+  links arrive Outlook-SafeLinks-wrapped (`emea01.safelinks.../?url=...`) and
+  must be unwrapped + entity-decoded. Inner shapes: view-server =
+  `glama.ai/mcp/servers/{owner}/{repo}`; build details =
+  `.../admin/dockerfile/tests/{uuid}`; create-a-release =
+  `.../admin/releases` (Glama admin page, not GitHub). Parser handles all
+  three (`_unwrap_url`, `_classify_url` specific-first).
+- ~~Sanitize-boundary interplay~~ RESOLVED: email-mcp wraps every field in
+  `---BEGIN EMAIL_DETAIL_*---` markers; the classifier unwraps first
+  (`_unwrap_boundary`, falls back to raw). Without this, 9/10 live mails
+  classified `unknown` (verified live before/after).
 - Type G existence — ongoing watch; pipeline handles it as `unknown` until
   specced.
 - `mark_read` default stays False; digest may want auto-mark-read of
