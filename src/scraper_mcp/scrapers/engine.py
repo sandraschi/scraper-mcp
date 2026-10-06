@@ -53,6 +53,9 @@ def _normalize_row(repo: str, **fields: Any) -> GradeRow:
         "trust_score",
         "top_issues",
         "server_id",
+        "score_history",
+        "rubric",
+        "expected_tool_count",
         "error",
     ):
         if key in fields:
@@ -212,25 +215,164 @@ def _fetch_with_obscura(url: str, dump: str = "html") -> str | None:
     try:
         import sys
         from pathlib import Path
+
         obscura_mcp_path = Path("D:/Dev/repos/obscura-mcp/src")
         if obscura_mcp_path.exists() and str(obscura_mcp_path) not in sys.path:
             sys.path.insert(0, str(obscura_mcp_path))
 
         from obscura_mcp.server import fetch_with_obscura
+
         return fetch_with_obscura(url, dump=dump, stealth=True, timeout=35)
     except Exception as e:
         log.warning("Obscura fetch fallback failed for %s: %s", url, e)
         return None
 
 
+_LOBEHUB_MARKET_TIMEOUT = 120.0
+
+
+def _lobehub_market_search(query: str, page_size: int = 40) -> list[dict]:
+    """Run `market-cli mcp search --output json`, return the raw item list.
+
+    Search is anonymous (no registration needed — unlike `mcp view`, which
+    requires `market-cli register`). page_size 40 is the server-side maximum
+    (the CLI docs claim 100, the API rejects >40) — needed because common
+    names like filesystem-mcp drown the owner's listing off page 1 at
+    smaller sizes. Returns [] on any failure so callers can fall back to
+    the legacy HTML probe.
+    """
+    import json
+    import shutil
+    import subprocess
+
+    npx = shutil.which("npx") or shutil.which("npx.cmd")
+    if npx is None:
+        log.warning("LobeHub market-cli search skipped: npx not found on PATH")
+        return []
+    try:
+        proc = subprocess.run(
+            [
+                npx,
+                "-y",
+                "@lobehub/market-cli",
+                "mcp",
+                "search",
+                "--q",
+                query,
+                "--page-size",
+                str(page_size),
+                "--output",
+                "json",
+            ],
+            capture_output=True,
+            text=True,
+            # Market records contain CJK descriptions; the Windows locale
+            # codec (cp1252) chokes on them and kills the reader thread,
+            # leaving stdout=None. Force UTF-8.
+            encoding="utf-8",
+            errors="replace",
+            timeout=_LOBEHUB_MARKET_TIMEOUT,
+        )
+    except Exception as exc:
+        log.warning("LobeHub market-cli search failed for %s: %s", query, exc)
+        return []
+    if proc.returncode != 0:
+        log.warning("LobeHub market-cli search failed for %s: %s", query, proc.stderr.strip()[:200])
+        return []
+    try:
+        payload = json.loads(proc.stdout)
+    except ValueError as exc:
+        log.warning("LobeHub market-cli returned non-JSON for %s: %s", query, exc)
+        return []
+    items = payload.get("items", [])
+    return items if isinstance(items, list) else []
+
+
+def _select_lobehub_item(owner: str, repo: str, items: list[dict]) -> dict | None:
+    """Owner-verified match: the record's github.url must equal owner/repo.
+
+    Bare-name matching caused 30 misattributed rows fleet-wide (A.5) — never
+    match on name/identifier alone. `foobar` must not match `foo`.
+    """
+    want = f"https://github.com/{owner.lower()}/{repo.lower()}"
+    for item in items:
+        url = ((item.get("github") or {}).get("url") or "").lower().rstrip("/").removesuffix(".git")
+        if url == want:
+            return item
+    return None
+
+
+def _lobehub_criticisms(item: dict) -> list[str]:
+    """Human-readable listing criticisms from a market plugin record.
+
+    LobeHub publishes no letter grades, but the record flags concrete gaps
+    ("no prompts defined", unvalidated, unclaimed, ...). Returned as
+    top_issues so downstream consumers need no platform special-casing.
+    """
+    caps = item.get("capabilities") or {}
+    issues: list[str] = []
+    if not item.get("isValidated", False):
+        issues.append("not LobeHub-validated")
+    if not item.get("isClaimed", False):
+        issues.append("listing unclaimed (claim it to manage updates)")
+    if (item.get("toolsCount", 0) or 0) == 0 and not caps.get("tools", False):
+        issues.append("no tools indexed on LobeHub")
+    if (item.get("promptsCount", 0) or 0) == 0 and not caps.get("prompts", False):
+        issues.append("no prompts defined")
+    if (item.get("resourcesCount", 0) or 0) == 0 and not caps.get("resources", False):
+        issues.append("no resources defined")
+    if (item.get("ratingCount", 0) or 0) == 0:
+        issues.append("no ratings yet")
+    if not (item.get("description") or "").strip():
+        issues.append("missing description")
+    return issues
+
+
+def _lobehub_row(repo: str, item: dict) -> GradeRow:
+    """Build a GradeRow from a market plugin record."""
+    rating = item.get("ratingAverage")
+    try:
+        score = float(rating) if rating is not None else None
+    except (TypeError, ValueError):
+        score = None
+    return _normalize_row(
+        repo,
+        grade="N/A",  # LobeHub publishes criticism, not letter grades
+        score=score,  # 0-5 rating scale, same range as Glama TDQS
+        # Human listing-page URL format is unconfirmed; manifestUrl is the
+        # stable per-listing link (resolves, unique per identifier).
+        url=item.get("manifestUrl") or "",
+        status="indexed",
+        tools=item.get("toolsCount", 0) or 0,
+        top_issues=_lobehub_criticisms(item),
+        server_id=item.get("identifier"),
+    )
+
+
 class LobeHubScraper(BaseScraper):
-    """LobeHub MCP marketplace - per-repo page probe (no public grades API)."""
+    """LobeHub MCP marketplace - market-cli search + criticism capture.
+
+    Primary source is `@lobehub/market-cli mcp search` (anonymous JSON).
+    The old lobehub.com/mcp/<owner>/<repo> page probe is kept as a last
+    resort but 404s since the market moved to market.lobehub.com.
+    """
 
     id = "lobehub"
     name = "LobeHub Marketplace"
     base_url = "https://lobehub.com"
 
     async def fetch_grade(self, owner: str, repo: str) -> GradeRow | None:
+        # Query "owner repo" (space-separated): the market tokenizes the
+        # query, and the rare owner token constrains results to our own
+        # listings. A bare repo name drowns in generic "mcp" matches and an
+        # "owner/repo" string matches nothing. Owner-verification happens
+        # in _select_lobehub_item, so collisions stay excluded.
+        items = await asyncio.to_thread(_lobehub_market_search, f"{owner} {repo}")
+        item = _select_lobehub_item(owner, repo, items)
+        if item is not None:
+            return _lobehub_row(repo, item)
+
+        # Fallback: legacy per-repo page probe
         url = f"{self.base_url}/mcp/{owner}/{repo}"
         headers = {"User-Agent": _LobeHub_USER_AGENT}
         text = None
@@ -261,6 +403,13 @@ class LobeHubScraper(BaseScraper):
         )
 
     async def request_reassess(self, owner: str, repo: str) -> bool:
+        log.warning(
+            "request_reassess(%s/%s): LobeHub has no rescore endpoint. "
+            "Listing owners refresh with `lhm plugin update` after fixing "
+            "the flagged gaps (validation, prompts/resources, description).",
+            owner,
+            repo,
+        )
         return False
 
 
