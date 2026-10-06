@@ -116,14 +116,29 @@ def _extract_links(html_body: str | None) -> list[tuple[str, str]]:
     return [(_unwrap_url(href), _strip_tags(text).strip()) for href, text in _HREF_RE.findall(body)]
 
 
-def _classify_url(href: str) -> str | None:
-    """build_url | releases_url | glama_url | None (specific first: admin
-    releases/build URLs also match the generic server pattern)."""
+def _classify_url(href: str, label: str = "") -> str | None:
+    """build_url | releases_url | glama_url | None.
+
+    Link TEXT rules first ("View build details" etc. - faithful to the mail
+    structure and immune to path renames); URL patterns as fallback.
+    Specific-before-generic: admin releases/build URLs also match the
+    plain server pattern, and /admin/dockerfile/tests/ carries no
+    "build" token at all.
+    """
+    text = (label or "").lower()
+    if "build" in text:
+        return "build_url"
+    if "release" in text:
+        return "releases_url"
+    if "view server" in text:
+        return "glama_url"
     low = href.lower()
     if "build" in low:
         return "build_url"
     if "releases" in low:
         return "releases_url"
+    if "admin" in low and ("test" in low or "docker" in low):
+        return "build_url"
     if _GLAMA_SERVER_RE.search(href):
         return "glama_url"
     return None
@@ -170,8 +185,8 @@ def parse_message(msg: dict) -> dict:
 
     urls: dict[str, str] = {}
     owner: str | None = None
-    for href, _label in _extract_links(html_body):
-        slot = _classify_url(href)
+    for href, label in _extract_links(html_body):
+        slot = _classify_url(href, label)
         if slot and slot not in urls:
             urls[slot] = href
         server_match = _GLAMA_SERVER_RE.search(href)
